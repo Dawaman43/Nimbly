@@ -291,10 +291,56 @@ export default function DashboardLayout({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full border-2 border-background" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full border-2 border-background" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-64 overflow-y-auto">
+                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
+                    <div className="font-medium text-sm">
+                      Welcome to Nimbly!
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Your account has been successfully set up. Start exploring
+                      our features.
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      2 hours ago
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
+                    <div className="font-medium text-sm">Resource Deployed</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Your web application has been successfully deployed to
+                      production.
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      1 day ago
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
+                    <div className="font-medium text-sm">Billing Update</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Your monthly billing cycle has started. Current usage:
+                      $45.20
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      3 days ago
+                    </div>
+                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-center text-sm text-muted-foreground">
+                  Mark all as read
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
