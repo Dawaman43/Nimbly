@@ -38,13 +38,23 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!res.ok) throw new Error('Invalid credentials');
+            if (!res.ok) {
+                if (res.status === 401) throw new Error('Invalid credentials');
+                throw new Error('Login failed');
+            }
 
             const data = await res.json();
             localStorage.setItem('access_token', data.access_token);
             onLoginSuccess();
-        } catch (err) {
-            setError("Login failed. Please check your credentials.");
+        } catch (err: any) {
+            console.error(err);
+            if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+                setError("Cannot connect to server. Is the backend running?");
+            } else if (err.message === 'Invalid credentials') {
+                setError("Invalid email or password.");
+            } else {
+                setError("Login failed. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -84,8 +94,13 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                 setError("Registration successful but login failed.");
             }
 
-        } catch (err) {
-            setError("Registration failed. Try again.");
+        } catch (err: any) {
+            console.error(err);
+            if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+                setError("Cannot connect to server. Is the backend running?");
+            } else {
+                setError("Registration failed. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }

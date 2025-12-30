@@ -58,7 +58,31 @@ export default function DashboardView() {
   const [currentView, setCurrentView] = useState("dashboard");
   const { setTheme } = useTheme();
 
-  const userName = "John Doe";
+  const [user, setUser] = useState<{ name: string, email: string } | null>(null);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const res = await fetch('http://localhost:4000/auth/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch profile", e);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const userName = user?.name || "User";
   const stats = {
     totalResources: 12,
     running: 8,
@@ -123,7 +147,7 @@ export default function DashboardView() {
       case "billing":
         return <BillingView />;
       case "settings":
-        return <SettingsView />;
+        return <SettingsView user={user} />;
       case "dashboard":
       default:
         return (
@@ -481,7 +505,7 @@ export default function DashboardView() {
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8 border">
                     <AvatarImage src="/placeholder-avatar.jpg" />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -502,18 +526,18 @@ export default function DashboardView() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 flex justify-between px-6 h-16 safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-[100] grid grid-cols-5 h-16 safe-area-bottom pb-safe">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setCurrentView(item.id)}
             className={`flex flex-col items-center justify-center w-full h-full transition-colors ${currentView === item.id
-                ? "text-orange-600 dark:text-orange-500"
-                : "text-muted-foreground hover:text-foreground"
+              ? "text-orange-600 dark:text-orange-500"
+              : "text-muted-foreground hover:text-foreground"
               }`}
           >
             <item.icon className="h-5 w-5 mb-1" />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <span className="text-[10px] font-medium tracking-tight">{item.label}</span>
           </button>
         ))}
       </nav>

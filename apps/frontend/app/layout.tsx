@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google"; // Swapped Montserrat for JetBrains Mono for a technical feel
+import { Bricolage_Grotesque, Manrope } from "next/font/google"; // Trendy, high-personality types
+
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({
-  variable: "--font-inter",
+const manrope = Manrope({
+  variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
-// JetBrains Mono gives that "Cloud/Dev" aesthetic you see in high-end SaaS
-const jetbrains = JetBrains_Mono({
-  variable: "--font-mono",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
 });
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrains.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+        className={`${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"

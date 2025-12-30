@@ -14,13 +14,22 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function SettingsView() {
+interface SettingsViewProps {
+    user: {
+        name: string;
+        email: string;
+    } | null;
+}
+
+export default function SettingsView({ user }: SettingsViewProps) {
+    const displayName = user?.name || "John Doe";
+    const displayEmail = user?.email || "john.doe@example.com";
     return (
         <div className="space-y-6 max-w-5xl">
             <div>
                 <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
                 <p className="text-muted-foreground">Manage your account and team preferences.</p>
-            </div>
+            </div >
 
             <Tabs defaultValue="general" className="w-full">
                 <TabsList className="mb-4">
@@ -41,7 +50,7 @@ export default function SettingsView() {
                             <div className="flex items-center gap-6">
                                 <Avatar className="h-20 w-20">
                                     <AvatarImage src="/placeholder-user.jpg" />
-                                    <AvatarFallback className="text-lg">JD</AvatarFallback>
+                                    <AvatarFallback className="text-lg">{displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="space-y-2">
                                     <Button variant="outline" size="sm">Change Avatar</Button>
@@ -51,17 +60,13 @@ export default function SettingsView() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="firstName">First name</Label>
-                                    <Input id="firstName" defaultValue="John" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="lastName">Last name</Label>
-                                    <Input id="lastName" defaultValue="Doe" />
+                                    <Label htmlFor="firstName">Full Name</Label>
+                                    <Input id="firstName" defaultValue={displayName} />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
-                                <Input id="email" defaultValue="john.doe@example.com" />
+                                <Input id="email" defaultValue={displayEmail} disabled />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="bio">Bio</Label>
@@ -85,9 +90,9 @@ export default function SettingsView() {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <Avatar><AvatarFallback>JD</AvatarFallback></Avatar>
+                                        <Avatar><AvatarFallback>{displayName.substring(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                                         <div>
-                                            <p className="text-sm font-medium">John Doe (You)</p>
+                                            <p className="text-sm font-medium">{displayName} (You)</p>
                                             <p className="text-xs text-muted-foreground">Owner</p>
                                         </div>
                                     </div>
@@ -179,6 +184,6 @@ export default function SettingsView() {
                 </TabsContent>
 
             </Tabs>
-        </div>
+        </div >
     );
 }
