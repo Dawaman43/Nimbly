@@ -22,7 +22,7 @@ export default function BillingView() {
     useEffect(() => {
         const fetchBilling = async () => {
             try {
-                const data = await api.get('/billing');
+                const data = await api.get('/billing', true); // Use cache
                 setSummary(data);
             } catch (error) {
                 console.error("Failed to load billing", error);
@@ -31,16 +31,9 @@ export default function BillingView() {
         fetchBilling();
     }, []);
 
-    const invoices = [
-        { id: "INV-2023-001", date: "Oct 1, 2023", amount: "$210.50", status: "Paid" },
-        { id: "INV-2023-002", date: "Sep 1, 2023", amount: "$185.00", status: "Paid" },
-        { id: "INV-2023-003", date: "Aug 1, 2023", amount: "$145.20", status: "Paid" },
-        { id: "INV-2023-004", date: "Jul 1, 2023", amount: "$120.00", status: "Paid" },
-    ];
-
     if (!summary) return <div className="p-8">Loading billing data...</div>;
 
-    const percentage = Math.min(100, (summary.totalAmount / 500) * 100);
+    const percentage = Math.min(100, (summary.currentSpend / summary.budget) * 100);
 
     return (
         <div className="space-y-6">
@@ -63,8 +56,8 @@ export default function BillingView() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-baseline gap-2 mb-4">
-                            <span className="text-4xl font-bold">${summary.totalAmount?.toFixed(2) || '0.00'}</span>
-                            <span className="text-muted-foreground">/ $500 limit</span>
+                            <span className="text-4xl font-bold">${summary.currentSpend?.toFixed(2) || '0.00'}</span>
+                            <span className="text-muted-foreground">/ ${summary.budget?.toFixed(2) || '0.00'} limit</span>
                         </div>
 
                         <div className="space-y-2">
@@ -74,26 +67,26 @@ export default function BillingView() {
                             </div>
                             <Progress value={percentage} className="h-2 w-full bg-muted rounded-full overflow-hidden" />
                             <p className="text-xs text-muted-foreground pt-1">
-                                You are projected to spend <span className="font-medium text-foreground">${(summary.totalAmount * 1.1).toFixed(2)}</span> by end of month.
+                                You are projected to spend <span className="font-medium text-foreground">${summary.projectedSpend?.toFixed(2) || '0.00'}</span> by end of month.
                             </p>
                         </div>
 
                         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="p-3 bg-muted/40 rounded-lg border">
-                                <div className="text-sm font-medium text-muted-foreground mb-1">Compute</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">Current Spend</div>
                                 <div className="text-lg font-bold">
-                                    ${(summary.breakdown?.find((b: any) => b.service === 'EC2')?.cost || 0).toFixed(2)}
+                                    ${summary.currentSpend?.toFixed(2) || '0.00'}
                                 </div>
                             </div>
                             <div className="p-3 bg-muted/40 rounded-lg border">
-                                <div className="text-sm font-medium text-muted-foreground mb-1">Database</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">Projected</div>
                                 <div className="text-lg font-bold">
-                                    ${(summary.breakdown?.find((b: any) => b.service === 'RDS')?.cost || 0).toFixed(2)}
+                                    ${summary.projectedSpend?.toFixed(2) || '0.00'}
                                 </div>
                             </div>
                             <div className="p-3 bg-muted/40 rounded-lg border">
-                                <div className="text-sm font-medium text-muted-foreground mb-1">Bandwidth</div>
-                                <div className="text-lg font-bold">$39.97</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">Budget</div>
+                                <div className="text-lg font-bold">${summary.budget?.toFixed(2) || '0.00'}</div>
                             </div>
                         </div>
                     </CardContent>
@@ -105,16 +98,22 @@ export default function BillingView() {
                         <CardTitle>Payment Method</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center gap-4 p-3 border rounded-lg bg-card">
-                            <div className="h-10 w-14 bg-blue-900 rounded flex items-center justify-center text-white text-xs font-bold font-serif italic">
-                                VISA
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium">Visa ending in 4242</p>
-                                <p className="text-xs text-muted-foreground">Expires 12/28</p>
-                            </div>
-                            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Default</Badge>
-                        </div>
+                        {summary.paymentMethods && summary.paymentMethods.length > 0 ? (
+                            summary.paymentMethods.map((pm: any) => (
+                                <div key={pm.id} className="flex items-center gap-4 p-3 border rounded-lg bg-card">
+                                    <div className="h-10 w-14 bg-blue-900 rounded flex items-center justify-center text-white text-xs font-bold font-serif italic">
+                                        {pm.type.toUpperCase().substring(0, 4)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">{pm.type} ending in {pm.last4}</p>
+                                        <p className="text-xs text-muted-foreground">Expires {pm.expiry}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Default</Badge>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No payment methods</p>
+                        )}
                         <Button variant="outline" className="w-full">
                             <CreditCard className="h-4 w-4 mr-2" /> Add Method
                         </Button>
@@ -145,23 +144,40 @@ export default function BillingView() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {invoices.map((inv) => (
-                                <TableRow key={inv.id}>
-                                    <TableCell className="font-medium">{inv.id}</TableCell>
-                                    <TableCell>{inv.date}</TableCell>
-                                    <TableCell>{inv.amount}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex w-fit items-center gap-1">
-                                            <Check className="h-3 w-3" /> {inv.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
+                            {summary.invoices && summary.invoices.length > 0 ? (
+                                summary.invoices.map((inv: any) => (
+                                    <TableRow key={inv.id}>
+                                        <TableCell className="font-medium">{inv.id}</TableCell>
+                                        <TableCell>{new Date(inv.date).toLocaleDateString()}</TableCell>
+                                        <TableCell>${inv.amount.toFixed(2)}</TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant="outline" 
+                                                className={`flex w-fit items-center gap-1 ${
+                                                    inv.status === 'Paid' 
+                                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                                        : inv.status === 'Pending'
+                                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                                        : 'bg-red-50 text-red-700 border-red-200'
+                                                }`}
+                                            >
+                                                <Check className="h-3 w-3" /> {inv.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm">
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                        No invoices found
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { BillingSummary } from '@nimbly/shared-types';
@@ -9,7 +9,8 @@ export class BillingController {
 
     @UseGuards(JwtAuthGuard)
     @Get()
-    async getSummary(): Promise<BillingSummary> {
-        return this.billingService.getSummary();
+    async getSummary(@Request() req): Promise<BillingSummary> {
+        const userId = req.user.userId;
+        return this.billingService.getSummary(userId);
     }
 }

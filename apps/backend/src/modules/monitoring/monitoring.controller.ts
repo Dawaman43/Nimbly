@@ -15,7 +15,8 @@ export class MonitoringController {
 
     @UseGuards(JwtAuthGuard)
     @Get('logs')
-    async getLogs(): Promise<LogEntry[]> {
-        return (await this.monitoringService.getLogs()) as unknown as LogEntry[];
+    async getLogs(@Request() req): Promise<LogEntry[]> {
+        const userId = req.user.userId;
+        return (await this.monitoringService.getLogs(userId)) as unknown as LogEntry[];
     }
 }

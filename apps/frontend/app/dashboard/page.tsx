@@ -49,22 +49,23 @@ export default function DashboardPage() {
         const loadData = async () => {
             try {
                 setLoading(true);
+                // All API calls now use caching automatically
                 const [
                     resourcesData,
                     alertsData,
                     billingData,
                     deploymentsData
                 ] = await Promise.all([
-                    api.get('/cloud-resources'),
-                    api.get('/alerts'),
-                    api.get('/billing'),
-                    api.get('/deployments')
+                    api.get('/cloud-resources', true), // useCache = true
+                    api.get('/alerts', true),
+                    api.get('/billing', true),
+                    api.get('/deployments', true)
                 ]);
 
                 // Process Stats
-                const running = deploymentsData.filter((d: any) => d.status === 'running').length;
+                const running = deploymentsData.filter((d: any) => d.status === 'in-progress' || d.status === 'successful').length;
                 const failed = deploymentsData.filter((d: any) => d.status === 'failed').length;
-                const stopped = deploymentsData.filter((d: any) => d.status === 'stopped').length;
+                const stopped = deploymentsData.filter((d: any) => d.status === 'pending').length;
 
                 setStats({
                     totalResources: resourcesData.length,
@@ -72,7 +73,7 @@ export default function DashboardPage() {
                     failed,
                     stopped,
                     activeAlerts: alertsData.length,
-                    monthlyCost: billingData.totalAmount || 0,
+                    monthlyCost: billingData.currentSpend || 0,
                 });
 
                 setDeployments(deploymentsData);
@@ -102,15 +103,18 @@ export default function DashboardPage() {
                         System health and resource monitoring.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                        <Terminal className="h-4 w-4 mr-2" /> CLI
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                        <Terminal className="h-4 w-4 mr-1 sm:mr-2" /> 
+                        <span className="hidden sm:inline">CLI</span>
                     </Button>
                     <Button
                         size="sm"
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm"
                     >
-                        <Plus className="h-4 w-4 mr-2" /> Deploy Resource
+                        <Plus className="h-4 w-4 mr-1 sm:mr-2" /> 
+                        <span className="hidden sm:inline">Deploy Resource</span>
+                        <span className="sm:hidden">Deploy</span>
                     </Button>
                 </div>
             </div>
@@ -185,111 +189,125 @@ export default function DashboardPage() {
 
             <div className="grid gap-6 md:grid-cols-7">
                 {/* Main Table */}
-                <Card className="md:col-span-5 shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Recent Deployments</CardTitle>
-                            <CardDescription>
+                <Card className="md:col-span-5 shadow-sm overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <CardTitle className="text-lg sm:text-xl">Recent Deployments</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">
                                 Manage your active infrastructure nodes.
                             </CardDescription>
                         </div>
-                        <Button variant="outline" size="sm" className="hidden sm:flex">
+                        <Button variant="outline" size="sm" className="hidden sm:flex flex-shrink-0">
                             View All
                         </Button>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Instance Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Load</TableHead>
+                                    <TableHead className="min-w-[150px]">Instance Name</TableHead>
+                                    <TableHead className="min-w-[80px]">Status</TableHead>
+                                    <TableHead className="min-w-[100px]">Load</TableHead>
                                     <TableHead className="hidden sm:table-cell">
                                         Region
                                     </TableHead>
-                                    <TableHead className="text-right">Last Updated</TableHead>
+                                    <TableHead className="text-right min-w-[100px]">Last Updated</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {deployments.map((item) => (
-                                    <TableRow
-                                        key={item.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                    >
-                                        <TableCell className="font-medium">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded bg-muted">
-                                                    <Code2 className="h-4 w-4 text-foreground/70" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span>{item.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                                                        {item.id}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {item.status === "running" && (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="border-transparent bg-green-500/15 text-green-700 dark:text-green-400 font-normal"
-                                                >
-                                                    Running
-                                                </Badge>
-                                            )}
-                                            {item.status === "failed" && (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="border-transparent bg-red-500/15 text-red-700 dark:text-red-400 font-normal"
-                                                >
-                                                    Failed
-                                                </Badge>
-                                            )}
-                                            {item.status === "stopped" && (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="font-normal text-muted-foreground"
-                                                >
-                                                    Stopped
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${parseInt(item.cpu) > 40 ? "bg-orange-500" : "bg-blue-500"}`}
-                                                        style={{ width: item.cpu }}
-                                                    />
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {item.cpu}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                                            {item.region}
-                                        </TableCell>
-                                        <TableCell className="text-right text-muted-foreground text-sm">
-                                            {item.updatedAt ? new Date(item.updatedAt).toLocaleTimeString() : 'N/A'}
+                                {deployments.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                            No deployments yet. Create your first resource to see deployments.
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    deployments.map((item: any) => {
+                                        const displayName = item.name || item.resource?.name || `Deployment ${item.id.substring(0, 8)}`;
+                                        const status = item.status;
+                                        return (
+                                            <TableRow
+                                                key={item.id}
+                                                className="cursor-pointer hover:bg-muted/50"
+                                            >
+                                                <TableCell className="font-medium">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded bg-muted">
+                                                            <Code2 className="h-4 w-4 text-foreground/70" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span>{displayName}</span>
+                                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                                                {item.version || 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {status === "successful" && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-transparent bg-green-500/15 text-green-700 dark:text-green-400 font-normal"
+                                                        >
+                                                            Successful
+                                                        </Badge>
+                                                    )}
+                                                    {status === "failed" && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-transparent bg-red-500/15 text-red-700 dark:text-red-400 font-normal"
+                                                        >
+                                                            Failed
+                                                        </Badge>
+                                                    )}
+                                                    {status === "in-progress" && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-transparent bg-blue-500/15 text-blue-700 dark:text-blue-400 font-normal"
+                                                        >
+                                                            In Progress
+                                                        </Badge>
+                                                    )}
+                                                    {status === "pending" && (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="font-normal text-muted-foreground"
+                                                        >
+                                                            Pending
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {item.action || 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                                                    {item.resource?.name || 'N/A'}
+                                                </TableCell>
+                                                <TableCell className="text-right text-muted-foreground text-sm">
+                                                    {item.startedAt ? formatDistanceToNow(new Date(item.startedAt), { addSuffix: true }) : 'N/A'}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
                 </Card>
 
                 {/* Side Panel: CSS-Only Chart & Notifications */}
-                <div className="md:col-span-2 space-y-6">
+                <div className="md:col-span-2 space-y-4 sm:space-y-6">
                     {/* Visual Fake Chart */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-sm">Usage History (24h)</CardTitle>
+                            <CardTitle className="text-sm sm:text-base">Usage History (24h)</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-end justify-between h-32 gap-2 mt-2">
+                            <div className="flex items-end justify-between h-24 sm:h-32 gap-1 sm:gap-2 mt-2">
                                 {[35, 60, 45, 70, 50, 65, 85].map((h, i) => (
                                     <div
                                         key={i}
@@ -302,7 +320,7 @@ export default function DashboardPage() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
+                            <div className="flex justify-between mt-2 text-[10px] sm:text-xs text-muted-foreground">
                                 <span>00:00</span>
                                 <span>12:00</span>
                                 <span>23:59</span>

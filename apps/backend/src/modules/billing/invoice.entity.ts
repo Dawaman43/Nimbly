@@ -6,6 +6,9 @@ export class Invoice {
     id: string;
 
     @Column()
+    userId: string;
+
+    @Column()
     date: string; // ISO date string
 
     @Column('decimal', { precision: 10, scale: 2 })

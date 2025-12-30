@@ -5,6 +5,9 @@ export class MonitoringLog {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @Column()
+    userId: string;
+
     @Column() // e.g., 'error', 'info', 'warning'
     level: string;
 

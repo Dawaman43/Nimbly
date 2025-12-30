@@ -11,6 +11,12 @@ export class CloudResourcesService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Don't seed resources - users should create their own
+    // New users will start with empty resources
+    return;
+    
+    // OLD SEEDING CODE - DISABLED
+    /*
     const count = await this.resourceRepository.count();
     if (count === 0) {
       // Seed data
@@ -92,6 +98,7 @@ export class CloudResourcesService implements OnModuleInit {
       // Type casting to map "EC2" to enum if needed, or we adjust seeds to match Entity Enums exactly using "as any"
       await this.resourceRepository.save(seeds as any[]);
     }
+    */
   }
 
   async create(resource: Partial<CloudResource>): Promise<CloudResource> {
@@ -99,8 +106,11 @@ export class CloudResourcesService implements OnModuleInit {
     return this.resourceRepository.save(newResource);
   }
 
-  async getAll(): Promise<CloudResource[]> {
-    return this.resourceRepository.find();
+  async getAll(userId: string): Promise<CloudResource[]> {
+    return this.resourceRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async getOne(id: string): Promise<CloudResource | null> {

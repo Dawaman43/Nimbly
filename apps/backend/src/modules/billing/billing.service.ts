@@ -12,22 +12,17 @@ export class BillingService implements OnModuleInit {
     ) { }
 
     async onModuleInit() {
-        // Seed if empty
-        const count = await this.invoiceRepo.count();
-        if (count === 0) {
-            await this.invoiceRepo.save([
-                { date: '2025-10-01', amount: 450.00, status: 'Paid' },
-                { date: '2025-11-01', amount: 450.00, status: 'Paid' },
-                { date: '2025-12-01', amount: 345.50, status: 'Pending' },
-            ] as Invoice[]);
-            console.log('Seeded invoices');
-        }
+        // Don't seed invoices - they should be user-specific
+        // New users will start with empty billing data
     }
 
-    async getSummary(): Promise<BillingSummary> {
-        const invoices = await this.invoiceRepo.find({ order: { date: 'DESC' } });
+    async getSummary(userId: string): Promise<BillingSummary> {
+        const invoices = await this.invoiceRepo.find({ 
+            where: { userId },
+            order: { date: 'DESC' } 
+        });
 
-        // Simple mock calculation for demo
+        // Calculate from user's invoices
         const currentSpend = invoices.reduce((acc, inv) => acc + Number(inv.amount), 0);
 
         return {

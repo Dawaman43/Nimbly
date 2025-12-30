@@ -27,6 +27,9 @@ export class Deployment {
   @JoinColumn({ name: 'resourceId' })
   resource: any;
 
+  @Column({ nullable: true })
+  name?: string;
+
   @Column()
   version: string;
 

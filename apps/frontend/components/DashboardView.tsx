@@ -195,7 +195,6 @@ export default function DashboardView() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8 border">
-                    <AvatarImage src="/placeholder-avatar.jpg" />
                     <AvatarFallback>JD</AvatarFallback>
                   </Avatar>
                 </Button>

@@ -26,7 +26,7 @@ export default function ResourcesView() {
     useEffect(() => {
         const fetchResources = async () => {
             try {
-                const data = await api.get('/cloud-resources');
+                const data = await api.get('/cloud-resources', true); // Use cache
                 // Improve data compatibility: map backend fields to frontend UI fields if necessary
                 const mapped = data.map((r: any) => ({
                     id: r.id,

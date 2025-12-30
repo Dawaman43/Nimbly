@@ -12,15 +12,8 @@ export class MonitoringService implements OnModuleInit {
     ) { }
 
     async onModuleInit() {
-        const count = await this.logRepo.count();
-        if (count === 0) {
-            await this.logRepo.save([
-                { level: 'error', message: 'Connection timeout', source: 'db-shard-01' },
-                { level: 'warn', message: 'High CPU usage', source: 'compute-c4' },
-                { level: 'info', message: 'Deployment successful', source: 'deployer' },
-            ] as MonitoringLog[]);
-            console.log('Seeded monitoring logs');
-        }
+        // Don't seed monitoring logs - they should be user-specific
+        // Users will see empty logs until they have actual monitoring data
     }
 
     getStats(): MonitoringStats {
@@ -43,7 +36,11 @@ export class MonitoringService implements OnModuleInit {
         };
     }
 
-    async getLogs() {
-        return this.logRepo.find({ order: { timestamp: 'DESC' }, take: 20 });
+    async getLogs(userId: string) {
+        return this.logRepo.find({ 
+            where: { userId },
+            order: { timestamp: 'DESC' }, 
+            take: 20 
+        });
     }
 }

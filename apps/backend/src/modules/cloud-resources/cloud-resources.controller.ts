@@ -17,8 +17,9 @@ export class CloudResourcesController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async getAll(): Promise<CloudResource[]> {
-    return await this.cloudService.getAll();
+  async getAll(@Request() req): Promise<CloudResource[]> {
+    const userId = req.user.userId;
+    return await this.cloudService.getAll(userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -34,8 +35,10 @@ export class CloudResourcesController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async create(
+    @Request() req,
     @Body() resource: Partial<CloudResource>,
   ): Promise<CloudResource> {
-    return await this.cloudService.create(resource);
+    const userId = req.user.userId;
+    return await this.cloudService.create({ ...resource, userId });
   }
 }
