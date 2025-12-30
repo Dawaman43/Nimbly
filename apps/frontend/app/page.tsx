@@ -34,7 +34,7 @@ import {
 
 export default function Home() {
   // Toggle this to see the Dashboard view
-  const isLoggedIn = true;
+  const isLoggedIn = false;
   const userName = "John Doe";
 
   const stats = {
