@@ -9,7 +9,7 @@ export class BillingController {
 
     @UseGuards(JwtAuthGuard)
     @Get()
-    getSummary(): BillingSummary {
+    async getSummary(): Promise<BillingSummary> {
         return this.billingService.getSummary();
     }
 }

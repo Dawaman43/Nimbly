@@ -7,9 +7,10 @@ import { Terminal, Cloud, ShieldCheck, Globe, Cpu } from "lucide-react";
 
 interface LandingPageProps {
   onLogin: () => void;
+  onGetStarted: () => void;
 }
 
-export default function LandingPage({ onLogin }: LandingPageProps) {
+export default function LandingPage({ onLogin, onGetStarted }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
       {/* Grid Background Effect */}
@@ -40,7 +41,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             <Button
               size="lg"
               className="h-12 px-8 text-base bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20"
-              onClick={onLogin}
+              onClick={onGetStarted}
             >
               Start Deploying Free
             </Button>

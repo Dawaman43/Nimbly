@@ -1,8 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { MonitoringStats, SystemMetric } from '@nimbly/shared-types';
+import { MonitoringLog } from './monitoring-log.entity';
 
 @Injectable()
-export class MonitoringService {
+export class MonitoringService implements OnModuleInit {
+    constructor(
+        @InjectRepository(MonitoringLog)
+        private logRepo: Repository<MonitoringLog>,
+    ) { }
+
+    async onModuleInit() {
+        const count = await this.logRepo.count();
+        if (count === 0) {
+            await this.logRepo.save([
+                { level: 'error', message: 'Connection timeout', source: 'db-shard-01' },
+                { level: 'warn', message: 'High CPU usage', source: 'compute-c4' },
+                { level: 'info', message: 'Deployment successful', source: 'deployer' },
+            ] as MonitoringLog[]);
+            console.log('Seeded monitoring logs');
+        }
+    }
+
     getStats(): MonitoringStats {
         const metrics: SystemMetric[] = [];
         const now = new Date();
@@ -23,11 +43,7 @@ export class MonitoringService {
         };
     }
 
-    getLogs() {
-        return [
-            { id: 'log_1', timestamp: new Date().toISOString(), level: 'error', message: 'Connection timeout', source: 'db-shard-01' },
-            { id: 'log_2', timestamp: new Date(Date.now() - 100000).toISOString(), level: 'warn', message: 'High CPU usage', source: 'compute-c4' },
-            { id: 'log_3', timestamp: new Date(Date.now() - 200000).toISOString(), level: 'info', message: 'Deployment successful', source: 'deployer' },
-        ]
+    async getLogs() {
+        return this.logRepo.find({ order: { timestamp: 'DESC' }, take: 20 });
     }
 }

@@ -15,7 +15,7 @@ export class MonitoringController {
 
     @UseGuards(JwtAuthGuard)
     @Get('logs')
-    getLogs(): LogEntry[] { // Using implicit typing based on service return would effectively be any[], so explicitly typing helpful if shared type matches
-        return this.monitoringService.getLogs() as LogEntry[];
+    async getLogs(): Promise<LogEntry[]> {
+        return (await this.monitoringService.getLogs()) as unknown as LogEntry[];
     }
 }

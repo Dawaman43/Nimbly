@@ -18,25 +18,38 @@ interface HeaderProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;
   onDashboardClick?: () => void;
+  onFeaturesClick?: () => void;
+  onDocsClick?: () => void;
+  onPricingClick?: () => void;
+  onLogoClick?: () => void;
 }
 
-export function Header({ onLogin, isLoggedIn, onLogout, onDashboardClick }: HeaderProps) {
+export function Header({
+  onLogin,
+  isLoggedIn,
+  onLogout,
+  onDashboardClick,
+  onFeaturesClick,
+  onDocsClick,
+  onPricingClick,
+  onLogoClick
+}: HeaderProps) {
   const { setTheme } = useTheme();
 
   const NavLinks = () => (
     <>
-      <Link href="#" className="hover:text-foreground transition-colors">
+      <a href="#" className="hover:text-foreground transition-colors" onClick={(e) => { e.preventDefault(); onFeaturesClick?.(); }}>
         Features
-      </Link>
-      <Link href="#" className="hover:text-foreground transition-colors">
+      </a>
+      <a href="#" className="hover:text-foreground transition-colors" onClick={(e) => { e.preventDefault(); onDocsClick?.(); }}>
         Documentation
-      </Link>
-      <Link href="#" className="hover:text-foreground transition-colors">
+      </a>
+      <a href="#" className="hover:text-foreground transition-colors" onClick={(e) => { e.preventDefault(); onPricingClick?.(); }}>
         Pricing
-      </Link>
-      <Link href="#" className="hover:text-foreground transition-colors" onClick={onDashboardClick}>
+      </a>
+      <a href="#" className="hover:text-foreground transition-colors" onClick={(e) => { e.preventDefault(); onDashboardClick?.(); }}>
         Dashboard
-      </Link>
+      </a>
     </>
   );
 
@@ -44,12 +57,12 @@ export function Header({ onLogin, isLoggedIn, onLogout, onDashboardClick }: Head
     <nav className="border-b bg-background/50 backdrop-blur z-20 sticky top-0">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-          <Link href="/" className="flex items-center gap-2">
+          <a href="#" onClick={(e) => { e.preventDefault(); onLogoClick?.(); }} className="flex items-center gap-2">
             <div className="h-8 w-8 rounded bg-orange-600 flex items-center justify-center text-white">
               <Cloud className="h-5 w-5" />
             </div>
             Nimbly
-          </Link>
+          </a>
         </div>
 
         {/* Desktop Nav */}

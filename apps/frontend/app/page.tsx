@@ -4,14 +4,19 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import LandingPage from "@/components/LandingPage";
 import DashboardView from "@/components/DashboardView";
+import AuthPage from "@/components/AuthPage";
+import FeaturesPage from "@/components/FeaturesPage";
+import DocsPage from "@/components/DocsPage";
+import PricingPage from "@/components/PricingPage";
 import { Header } from "@/components/layout/Header";
-import { Lock } from "lucide-react";
+
+type ViewType = "landing" | "dashboard" | "auth" | "features" | "docs" | "pricing";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<"landing" | "dashboard">("landing");
+  const [currentView, setCurrentView] = useState<ViewType>("landing");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleLogin = () => {
+  const handleLoginSuccess = () => {
     setIsLoggedIn(true);
     setCurrentView("dashboard");
   };
@@ -21,16 +26,35 @@ export default function App() {
     setCurrentView("landing");
   };
 
+  const navigateToAuth = () => {
+    setCurrentView("auth");
+  };
+
+  const handleDashboardNavigation = () => {
+    if (isLoggedIn) {
+      setCurrentView("dashboard");
+    } else {
+      setCurrentView("auth");
+    }
+  };
+
   return (
     <>
-      <Header
-        onLogin={handleLogin}
-        isLoggedIn={isLoggedIn}
-        onLogout={handleLogout}
-        onDashboardClick={() => setCurrentView("dashboard")}
-      />
+      {/* Hide Header on Auth Page for cleaner look, or keep it. Keeping it but simplifying props. */}
+      {currentView !== "auth" && (
+        <Header
+          onLogin={navigateToAuth}
+          isLoggedIn={isLoggedIn}
+          onLogout={handleLogout}
+          onDashboardClick={handleDashboardNavigation}
+          onFeaturesClick={() => setCurrentView("features")}
+          onDocsClick={() => setCurrentView("docs")}
+          onPricingClick={() => setCurrentView("pricing")}
+          onLogoClick={() => setCurrentView("landing")}
+        />
+      )}
 
-      {/* Demo Switcher - To help verify states easily */}
+      {/* Demo Switcher */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 bg-background/80 backdrop-blur border p-2 rounded-lg shadow-lg items-end">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold">User:</span>
@@ -45,51 +69,41 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold">View:</span>
-          <Button
-            size="sm"
-            variant={currentView === "landing" ? "default" : "ghost"}
-            onClick={() => setCurrentView("landing")}
-            className="rounded-full text-xs h-7"
+          <select
+            className="h-7 text-xs rounded border bg-background px-1"
+            value={currentView}
+            onChange={(e) => setCurrentView(e.target.value as ViewType)}
           >
-            Landing
-          </Button>
-          <Button
-            size="sm"
-            variant={currentView === "dashboard" ? "default" : "ghost"}
-            onClick={() => setCurrentView("dashboard")}
-            className="rounded-full text-xs h-7"
-          >
-            App
-          </Button>
+            <option value="landing">Landing</option>
+            <option value="auth">Auth</option>
+            <option value="features">Features</option>
+            <option value="docs">Docs</option>
+            <option value="pricing">Pricing</option>
+            <option value="dashboard">Dashboard</option>
+          </select>
         </div>
       </div>
 
-      {currentView === "landing" ? (
-        <LandingPage onLogin={handleLogin} />
-      ) : (
-        /* Dashboard View - Protected */
+      {currentView === "landing" && (
+        <LandingPage
+          onLogin={navigateToAuth}
+          onGetStarted={handleDashboardNavigation}
+        />
+      )}
+
+      {currentView === "features" && <FeaturesPage />}
+      {currentView === "docs" && <DocsPage />}
+      {currentView === "pricing" && <PricingPage />}
+
+      {currentView === "auth" && (
+        <AuthPage onLoginSuccess={handleLoginSuccess} />
+      )}
+
+      {currentView === "dashboard" && (
         isLoggedIn ? (
           <DashboardView />
         ) : (
-          <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-muted/20 p-4">
-            <div className="text-center max-w-md mx-auto p-8 rounded-xl border bg-background shadow-lg space-y-4 animate-in zoom-in-95 duration-300">
-              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <Lock className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h2 className="text-2xl font-bold tracking-tight">Access Restricted</h2>
-              <p className="text-muted-foreground">
-                You must be logged in to view the dashboard and manage your account.
-              </p>
-              <div className="pt-4 flex justify-center gap-4">
-                <Button variant="outline" onClick={() => setCurrentView("landing")}>
-                  Back to Home
-                </Button>
-                <Button onClick={handleLogin} className="bg-orange-600 hover:bg-orange-700">
-                  Log In Now
-                </Button>
-              </div>
-            </div>
-          </div>
+          <AuthPage onLoginSuccess={handleLoginSuccess} />
         )
       )}
     </>

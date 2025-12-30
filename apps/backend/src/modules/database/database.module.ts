@@ -4,6 +4,8 @@ import { User } from '../user/user.entity';
 import { CloudResource } from '../cloud-resources/cloud-resource.entity';
 import { Alert } from '../alerts/alert.entity';
 import { Deployment } from '../deployments/deployment.entity';
+import { Invoice } from '../billing/invoice.entity';
+import { MonitoringLog } from '../monitoring/monitoring-log.entity';
 
 @Module({
   imports: [
@@ -14,9 +16,9 @@ import { Deployment } from '../deployments/deployment.entity';
       username: process.env.DB_USER ?? 'postgres',
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'nimbly',
-      entities: [User, CloudResource, Alert, Deployment],
+      entities: [User, CloudResource, Alert, Deployment, Invoice, MonitoringLog],
       synchronize: true, // auto-create tables for dev
     }),
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }
