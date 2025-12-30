@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { CloudResourcesService } from './cloud-resources.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { CloudResource } from '@nimbly/shared-types';
+import { CloudResource } from './cloud-resource.entity';
 
 @Controller('cloud-resources')
 export class CloudResourcesController {
@@ -17,14 +17,14 @@ export class CloudResourcesController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  getAll(): CloudResource[] {
-    return this.cloudService.getAll();
+  async getAll(): Promise<CloudResource[]> {
+    return await this.cloudService.getAll();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  getOne(@Param('id') id: string): CloudResource {
-    const resource = this.cloudService.getOne(id);
+  async getOne(@Param('id') id: string): Promise<CloudResource> {
+    const resource = await this.cloudService.getOne(id);
     if (!resource) {
       throw new NotFoundException(`CloudResource with id ${id} not found`);
     }
@@ -33,7 +33,9 @@ export class CloudResourcesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() resource: CloudResource): CloudResource {
-    return this.cloudService.create(resource);
+  async create(
+    @Body() resource: Partial<CloudResource>,
+  ): Promise<CloudResource> {
+    return await this.cloudService.create(resource);
   }
 }

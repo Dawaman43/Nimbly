@@ -1,14 +1,15 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AlertsService, Alert } from './alerts.service';
+import { AlertsService } from './alerts.service';
+import { Alert } from './alert.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('alerts')
 export class AlertsController {
-    constructor(private readonly alertsService: AlertsService) { }
+  constructor(private readonly alertsService: AlertsService) {}
 
-    @UseGuards(JwtAuthGuard)
-    @Get()
-    findAll(): Alert[] {
-        return this.alertsService.findAll();
-    }
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async findAll(): Promise<any[]> {
+    return await this.alertsService.findAll();
+  }
 }
