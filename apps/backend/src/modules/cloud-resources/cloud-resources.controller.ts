@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   NotFoundException,
+  Request,
 } from '@nestjs/common';
 import { CloudResourcesService } from './cloud-resources.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

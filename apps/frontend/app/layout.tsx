@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Manrope } from "next/font/google"; // Trendy, high
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Toaster />
           {/* Main App Container */}
           <div className="relative flex min-h-screen flex-col">
             {/* Global Background Layer - The Grid Pattern you liked */}
