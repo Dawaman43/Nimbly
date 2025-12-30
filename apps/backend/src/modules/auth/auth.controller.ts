@@ -1,19 +1,33 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from '../user/user.entity';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { UserService } from '../user/user.service';
+import { SignUpDto } from './dto/signup.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
-  ) { }
+  ) {}
 
   @Post('signup')
-  async signup(@Body() user: User) {
-    return this.authService.signUp(user);
+  async signup(@Body() signUpDto: SignUpDto) {
+    return this.authService.signUp(signUpDto);
+  }
+
+  @Post('check-username')
+  async checkUsername(@Body() body: { username: string }) {
+    const available = await this.userService.isUsernameAvailable(body.username);
+    return { available };
   }
 
   @Post('login')

@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import SettingsView from "@/components/dashboard/settings-view";
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    username?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

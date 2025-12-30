@@ -18,6 +18,7 @@ export class UserService implements OnModuleInit {
         id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'Demo User',
         email: 'demo@nimbly.com',
+        username: 'demouser',
         password: '$2b$10$dummyhashedpassword', // dummy hash
         role: 'admin' as const,
       };
@@ -25,7 +26,8 @@ export class UserService implements OnModuleInit {
     }
   }
 
-  create(user: User): Promise<User> {
+  create(userData: Partial<User>): Promise<User> {
+    const user = this.userRepository.create(userData);
     return this.userRepository.save(user);
   }
 
@@ -37,8 +39,28 @@ export class UserService implements OnModuleInit {
     return this.userRepository.findOneBy({ id });
   }
 
+  findByUsername(username: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ username });
+  }
+
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    const user = await this.findByUsername(username);
+    return !user;
+  }
+
   async update(id: string, updateData: Partial<User>): Promise<User | null> {
     await this.userRepository.update(id, updateData);
     return this.findById(id);
   }
-}
+
+  async searchUsernames(query: string, limit: number = 10): Promise<string[]> {
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .select('user.username')
+      .where('user.username LIKE :query', { query: `${query}%` })
+      .andWhere('user.username IS NOT NULL')
+      .limit(limit)
+      .getRawMany();
+
+    return users.map(user => user.user_username);
+  }

@@ -7,6 +7,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { TeamModule } from './modules/team/team.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
     DeploymentsModule,
     BillingModule,
     MonitoringModule,
+    TeamModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,51 @@ interface AuthPageProps {
 
 export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
+    null
+  );
+  const [checkingUsername, setCheckingUsername] = useState(false);
+
+  const checkUsername = async (username: string) => {
+    if (!username) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setCheckingUsername(true);
+    try {
+      const res = await fetch("http://[::1]:4000/auth/check-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsernameAvailable(data.available);
+      } else {
+        setUsernameAvailable(null);
+      }
+    } catch (err) {
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (username) {
+        checkUsername(username);
+      } else {
+        setUsernameAvailable(null);
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [username]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +116,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
       const res = await fetch("http://[::1]:4000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, username, password }),
       });
 
       if (!res.ok) throw new Error("Registration failed");
@@ -167,6 +212,26 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    placeholder="johndoe"
+                    value={username}
+                    onChange={handleUsernameChange}
+                    required
+                  />
+                  {checkingUsername && (
+                    <p className="text-sm text-muted-foreground">Checking...</p>
+                  )}
+                  {usernameAvailable === true && (
+                    <p className="text-sm text-green-600">Username available</p>
+                  )}
+                  {usernameAvailable === false && (
+                    <p className="text-sm text-red-600">Username taken</p>
+                  )}
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="register-email">Email</Label>
                   <Input
                     id="register-email"
@@ -188,7 +253,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                 <Button
                   className="w-full bg-orange-600 hover:bg-orange-700"
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || usernameAvailable === false}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>

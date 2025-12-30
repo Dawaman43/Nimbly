@@ -7,6 +7,7 @@ import {
   Put,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
@@ -44,4 +45,12 @@ export class UserController {
     }
     return this.userService.update(id, updateData);
   }
-}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('search-usernames')
+  async searchUsernames(@Query('q') query: string) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+    return this.userService.searchUsernames(query);
+  }
