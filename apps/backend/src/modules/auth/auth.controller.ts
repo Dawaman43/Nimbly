@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import type { User } from '@nimbly/shared-types';
+import { User } from '../user/user.entity';
 
 @Controller('auth')
 export class AuthController {

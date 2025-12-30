@@ -1,9 +1,19 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './modules/auth/auth.service';
-import { UserService } from './modules/user/user.service';
-import { CloudResourcesService } from './modules/cloud-resources/cloud-resources.service';
+import { DatabaseModule } from './modules/database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user/user.module';
+import { CloudResourcesModule } from './modules/cloud-resources/cloud-resources.module';
+import { AlertsModule } from './modules/alerts/alerts.module';
+import { DeploymentsModule } from './modules/deployments/deployments.module';
 
 @Module({
-  imports: [AuthService, UserService, CloudResourcesService],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    UserModule,
+    CloudResourcesModule,
+    AlertsModule,
+    DeploymentsModule,
+  ],
 })
 export class AppModule {}

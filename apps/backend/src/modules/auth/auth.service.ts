@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
-import { User } from '@nimbly/shared-types';
+import { User } from '../user/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +18,8 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = this.userService.findAll().find((u) => u.email === email);
+    const users = await this.userService.findAll();
+    const user = users.find((u) => u.email === email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
