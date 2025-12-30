@@ -1,0 +1,21 @@
+{
+  "name": "nimbly",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "dev:backend": "cd apps/backend && npm run start:dev",
+    "dev:frontend": "cd apps/frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "cd apps/backend && npm run build && cd ../frontend && npm run build",
+    "lint": "eslint app/**/* libs/**/* -ext .ts, .tsx"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4"
+  }
+}
