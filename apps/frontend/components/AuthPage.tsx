@@ -21,15 +21,74 @@ interface AuthPageProps {
 
 export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false);
+        setError("");
+
+        const email = (e.target as any).email.value;
+        const password = (e.target as any).password.value;
+
+        try {
+            const res = await fetch('http://localhost:4000/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!res.ok) throw new Error('Invalid credentials');
+
+            const data = await res.json();
+            localStorage.setItem('access_token', data.access_token);
             onLoginSuccess();
-        }, 1500);
+        } catch (err) {
+            setError("Login failed. Please check your credentials.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
+
+        const name = (e.target as any).name.value;
+        const email = (e.target as any).elements['register-email'].value;
+        const password = (e.target as any).elements['register-password'].value;
+
+        try {
+            const res = await fetch('http://localhost:4000/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password }),
+            });
+
+            if (!res.ok) throw new Error('Registration failed');
+
+            // Auto login after register? Or just ask to login.
+            // Let's auto-login for better UX
+            const loginRes = await fetch('http://localhost:4000/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (loginRes.ok) {
+                const data = await loginRes.json();
+                localStorage.setItem('access_token', data.access_token);
+                onLoginSuccess();
+            } else {
+                setError("Registration successful but login failed.");
+            }
+
+        } catch (err) {
+            setError("Registration failed. Try again.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -53,15 +112,21 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                             <TabsTrigger value="register">Register</TabsTrigger>
                         </TabsList>
 
+                        {error && (
+                            <div className="bg-red-50 text-red-600 text-sm p-2 rounded mb-4 text-center">
+                                {error}
+                            </div>
+                        )}
+
                         <TabsContent value="login">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form onSubmit={handleLogin} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" placeholder="m@example.com" required />
+                                    <Input id="email" name="email" type="email" placeholder="m@example.com" required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="password">Password</Label>
-                                    <Input id="password" type="password" required />
+                                    <Input id="password" name="password" type="password" required />
                                 </div>
                                 <Button className="w-full bg-orange-600 hover:bg-orange-700" type="submit" disabled={isLoading}>
                                     {isLoading ? "Signing in..." : "Sign In"}
@@ -70,18 +135,18 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                         </TabsContent>
 
                         <TabsContent value="register">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form onSubmit={handleRegister} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Full Name</Label>
-                                    <Input id="name" placeholder="John Doe" required />
+                                    <Input id="name" name="name" placeholder="John Doe" required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="register-email">Email</Label>
-                                    <Input id="register-email" type="email" placeholder="m@example.com" required />
+                                    <Input id="register-email" name="register-email" type="email" placeholder="m@example.com" required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="register-password">Password</Label>
-                                    <Input id="register-password" type="password" required />
+                                    <Input id="register-password" name="register-password" type="password" required />
                                 </div>
                                 <Button className="w-full bg-orange-600 hover:bg-orange-700" type="submit" disabled={isLoading}>
                                     {isLoading ? "Creating account..." : "Create Account"}

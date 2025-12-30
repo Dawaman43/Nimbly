@@ -16,12 +16,21 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>("landing");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      setIsLoggedIn(true);
+      // Optional: validate token with backend here
+    }
+  }, []);
+
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
     setCurrentView("dashboard");
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('access_token');
     setIsLoggedIn(false);
     setCurrentView("landing");
   };

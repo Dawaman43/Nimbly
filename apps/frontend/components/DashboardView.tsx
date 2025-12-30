@@ -380,8 +380,16 @@ export default function DashboardView() {
     }
   };
 
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "resources", label: "Resources", icon: Server },
+    { id: "monitoring", label: "Monitoring", icon: Activity },
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "settings", label: "Settings", icon: Settings },
+  ];
+
   return (
-    <div className="min-h-screen bg-muted/20 flex">
+    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background fixed inset-y-0 z-10 transition-all">
         <div className="h-16 flex items-center px-6 border-b">
@@ -393,46 +401,16 @@ export default function DashboardView() {
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <Button
-            variant={currentView === "dashboard" ? "secondary" : "ghost"}
-            className={`w-full justify-start font-medium ${currentView !== "dashboard" && "text-muted-foreground"
-              }`}
-            onClick={() => setCurrentView("dashboard")}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-          </Button>
-          <Button
-            variant={currentView === "resources" ? "secondary" : "ghost"}
-            className={`w-full justify-start font-medium ${currentView !== "resources" && "text-muted-foreground"
-              }`}
-            onClick={() => setCurrentView("resources")}
-          >
-            <Server className="mr-2 h-4 w-4" /> Resources
-          </Button>
-          <Button
-            variant={currentView === "monitoring" ? "secondary" : "ghost"}
-            className={`w-full justify-start font-medium ${currentView !== "monitoring" && "text-muted-foreground"
-              }`}
-            onClick={() => setCurrentView("monitoring")}
-          >
-            <Activity className="mr-2 h-4 w-4" /> Monitoring
-          </Button>
-          <Button
-            variant={currentView === "billing" ? "secondary" : "ghost"}
-            className={`w-full justify-start font-medium ${currentView !== "billing" && "text-muted-foreground"
-              }`}
-            onClick={() => setCurrentView("billing")}
-          >
-            <CreditCard className="mr-2 h-4 w-4" /> Billing
-          </Button>
-          <Button
-            variant={currentView === "settings" ? "secondary" : "ghost"}
-            className={`w-full justify-start font-medium ${currentView !== "settings" && "text-muted-foreground"
-              }`}
-            onClick={() => setCurrentView("settings")}
-          >
-            <Settings className="mr-2 h-4 w-4" /> Settings
-          </Button>
+          {navItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={currentView === item.id ? "secondary" : "ghost"}
+              className={`w-full justify-start font-medium ${currentView !== item.id && "text-muted-foreground"}`}
+              onClick={() => setCurrentView(item.id)}
+            >
+              <item.icon className="mr-2 h-4 w-4" /> {item.label}
+            </Button>
+          ))}
         </nav>
         <div className="p-4 border-t">
           <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
@@ -450,7 +428,7 @@ export default function DashboardView() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64">
+      <main className="flex-1 md:ml-64 mb-16 md:mb-0">
         {/* Top Header */}
         <header className="h-16 border-b bg-background/50 backdrop-blur sticky top-0 z-10 px-6 flex items-center justify-between">
           <div className="md:hidden flex items-center gap-2 font-bold">
@@ -522,6 +500,23 @@ export default function DashboardView() {
           {renderContent()}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 flex justify-between px-6 h-16 safe-area-bottom">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setCurrentView(item.id)}
+            className={`flex flex-col items-center justify-center w-full h-full transition-colors ${currentView === item.id
+                ? "text-orange-600 dark:text-orange-500"
+                : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            <item.icon className="h-5 w-5 mb-1" />
+            <span className="text-[10px] font-medium">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
