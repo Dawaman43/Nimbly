@@ -62,5 +62,6 @@ export class UserService implements OnModuleInit {
       .limit(limit)
       .getRawMany();
 
-    return users.map(user => user.user_username);
+    return users.map((user) => user.user_username);
   }
+}

@@ -44,6 +44,103 @@ export default function DashboardLayout({
 
   const [isLoading, setIsLoading] = React.useState(true);
 
+  // Notification state
+  const [notifications, setNotifications] = useState([
+    {
+      id: "1",
+      title: "Welcome to Nimbly!",
+      message:
+        "Your account has been successfully set up. Start exploring our features.",
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      read: false,
+      type: "welcome",
+    },
+    {
+      id: "2",
+      title: "Resource Deployed",
+      message:
+        "Your web application has been successfully deployed to production.",
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      read: false,
+      type: "deployment",
+    },
+    {
+      id: "3",
+      title: "Billing Update",
+      message: "Your monthly billing cycle has started. Current usage: $45.20",
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      read: true,
+      type: "billing",
+    },
+  ]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Notification handlers
+  const markAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const addNotification = (
+    notification: Omit<(typeof notifications)[0], "id" | "timestamp" | "read">
+  ) => {
+    const newNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications((prev) => [newNotification, ...prev]);
+  };
+
+  // Simulate real-time notifications
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      // Randomly add notifications for demo purposes
+      if (Math.random() < 0.1) {
+        // 10% chance every 30 seconds
+        const notificationTypes = [
+          {
+            title: "Deployment Completed",
+            message: "Your latest deployment has finished successfully.",
+            type: "deployment",
+          },
+          {
+            title: "Resource Alert",
+            message: "High CPU usage detected on your web server.",
+            type: "alert",
+          },
+          {
+            title: "Team Activity",
+            message: "Alice Smith joined your project.",
+            type: "team",
+          },
+        ];
+        const randomType =
+          notificationTypes[
+            Math.floor(Math.random() * notificationTypes.length)
+          ];
+        addNotification(randomType);
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Expose addNotification globally for other components to use
+  React.useEffect(() => {
+    (window as any).addNotification = addNotification;
+    return () => {
+      delete (window as any).addNotification;
+    };
+  }, [addNotification]);
+
   React.useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("access_token");
@@ -295,50 +392,62 @@ export default function DashboardLayout({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-4 w-4" />
-                  <span className="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full border-2 border-background" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 rounded-full border-2 border-background flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  Notifications
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={markAllAsRead}
+                      className="h-auto p-1 text-xs"
+                    >
+                      Mark all read
+                    </Button>
+                  )}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-64 overflow-y-auto">
-                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
-                    <div className="font-medium text-sm">
-                      Welcome to Nimbly!
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No notifications yet
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Your account has been successfully set up. Start exploring
-                      our features.
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      2 hours ago
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
-                    <div className="font-medium text-sm">Resource Deployed</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Your web application has been successfully deployed to
-                      production.
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      1 day ago
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex flex-col items-start p-4 cursor-pointer">
-                    <div className="font-medium text-sm">Billing Update</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Your monthly billing cycle has started. Current usage:
-                      $45.20
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      3 days ago
-                    </div>
-                  </DropdownMenuItem>
+                  ) : (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`flex flex-col items-start p-4 cursor-pointer ${
+                          !notification.read
+                            ? "bg-blue-50 dark:bg-blue-950/20"
+                            : ""
+                        }`}
+                        onClick={() => markAsRead(notification.id)}
+                      >
+                        <div className="font-medium text-sm flex items-center gap-2 w-full">
+                          {notification.title}
+                          {!notification.read && (
+                            <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {notification.message}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          {notification.timestamp.toLocaleString()}
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center text-sm text-muted-foreground">
-                  Mark all as read
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>

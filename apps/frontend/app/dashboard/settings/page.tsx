@@ -5,6 +5,7 @@ import SettingsView from "@/components/dashboard/settings-view";
 
 export default function SettingsPage() {
   const [user, setUser] = useState<{
+    id: string;
     name: string;
     email: string;
     username?: string;

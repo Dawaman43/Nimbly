@@ -228,6 +228,16 @@ export default function SettingsView({ user }: SettingsViewProps) {
     try {
       // For now, just show a success message since we don't have the invite API yet
       toast.success(`Invitation sent to ${inviteUsername}!`);
+
+      // Trigger notification
+      if (typeof window !== "undefined" && (window as any).addNotification) {
+        (window as any).addNotification({
+          title: "Team Invitation Sent",
+          message: `An invitation has been sent to ${inviteUsername} to join your team.`,
+          type: "team",
+        });
+      }
+
       setInviteUsername("");
       setUsernameSuggestions([]);
       setShowSuggestions(false);
