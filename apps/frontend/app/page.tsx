@@ -295,9 +295,9 @@ export default function Home() {
 
       <div className="relative container mx-auto px-4 py-24 flex flex-col items-center">
         {/* Badge / Pill */}
-        <div className="mb-6 inline-flex items-center rounded-full border bg-background px-3 py-1 text-sm font-medium text-muted-foreground shadow-sm">
-          <span className="mr-2 flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-          v2.0 is now live
+        <div className="mb-6 inline-flex items-center rounded-full border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800 px-3 py-1 text-sm font-medium text-orange-700 dark:text-orange-400 shadow-sm">
+          <span className="mr-2 flex h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+          Beta Version
         </div>
 
         {/* Hero Content */}
