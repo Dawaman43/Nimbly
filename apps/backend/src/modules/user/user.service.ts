@@ -36,4 +36,9 @@ export class UserService implements OnModuleInit {
   findById(id: string): Promise<User | null> {
     return this.userRepository.findOneBy({ id });
   }
+
+  async update(id: string, updateData: Partial<User>): Promise<User | null> {
+    await this.userRepository.update(id, updateData);
+    return this.findById(id);
+  }
 }

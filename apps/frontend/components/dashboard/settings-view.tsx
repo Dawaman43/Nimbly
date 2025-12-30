@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { User, Lock, Bell, Users, Save, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +16,52 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 interface SettingsViewProps {
   user: {
+    id: string;
     name: string;
     email: string;
   } | null;
 }
 
 export default function SettingsView({ user }: SettingsViewProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [name, setName] = useState(user?.name || "");
+  const [bio, setBio] = useState("");
+
+  const handleUpdateProfile = async () => {
+    if (!user?.id) return;
+
+    setIsUpdating(true);
+    const token = localStorage.getItem("access_token");
+
+    try {
+      const res = await fetch(`http://[::1]:4000/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Profile updated successfully!");
+        // Optionally refresh the page or update parent state
+      } else {
+        toast.error("Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   if (!user) {
     return (
       <div className="space-y-6 max-w-5xl">
@@ -93,21 +130,35 @@ export default function SettingsView({ user }: SettingsViewProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Full Name</Label>
-                  <Input id="firstName" defaultValue={displayName} />
+                  <Input
+                    id="firstName"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" defaultValue={displayEmail} disabled />
+                <Input id="email" value={displayEmail} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
-                <Input id="bio" placeholder="Software Engineer at..." />
+                <Input
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Software Engineer at..."
+                />
               </div>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                Save Changes
+              <Button
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={handleUpdateProfile}
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
               </Button>
             </CardFooter>
           </Card>
