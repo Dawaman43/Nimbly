@@ -2,19 +2,32 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CloudResource } from './cloud-resource.entity';
+import { CloudProvider, DeploymentRequest } from '@nimbly/shared-types';
+import { MockCloudProvider } from '../../providers/mock-cloud-provider';
 
 @Injectable()
 export class CloudResourcesService implements OnModuleInit {
+  private cloudProvider: CloudProvider;
+
   constructor(
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
-  ) {}
+  ) {
+    // Initialize with mock provider - in production, this would be injected
+    this.cloudProvider = new MockCloudProvider({
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: 'mock-key',
+        secretAccessKey: 'mock-secret',
+      },
+    });
+  }
 
   async onModuleInit() {
     // Don't seed resources - users should create their own
     // New users will start with empty resources
     return;
-    
+
     // OLD SEEDING CODE - DISABLED
     /*
     const count = await this.resourceRepository.count();
@@ -102,7 +115,31 @@ export class CloudResourcesService implements OnModuleInit {
   }
 
   async create(resource: Partial<CloudResource>): Promise<CloudResource> {
-    const newResource = this.resourceRepository.create(resource);
+    // First, attempt to deploy the resource via cloud provider
+    const deploymentRequest: DeploymentRequest = {
+      resourceId: resource.id || `res_${Date.now()}`,
+      action: 'create',
+      config: {
+        name: resource.name,
+        type: resource.type,
+        cpu: resource.cpu,
+        ram: resource.ram,
+        storage: resource.storage,
+      },
+    };
+
+    const deploymentResult = await this.cloudProvider.deploy(deploymentRequest);
+
+    if (!deploymentResult.success) {
+      throw new Error(`Failed to deploy resource: ${deploymentResult.message}`);
+    }
+
+    // If deployment successful, save to database
+    const newResource = this.resourceRepository.create({
+      ...resource,
+      id: deploymentRequest.resourceId,
+      status: 'running', // Assume running after successful deployment
+    });
     return this.resourceRepository.save(newResource);
   }
 
@@ -115,5 +152,27 @@ export class CloudResourcesService implements OnModuleInit {
 
   async getOne(id: string): Promise<CloudResource | null> {
     return this.resourceRepository.findOne({ where: { id } });
+  }
+
+  async getResourceMetrics(id: string) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+
+    return this.cloudProvider.getMetrics(id);
+  }
+
+  async getResourceStatus(id: string) {
+    return this.cloudProvider.getResourceStatus(id);
+  }
+
+  async scaleResource(id: string, newConfig: Record<string, any>) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+
+    return this.cloudProvider.scaleResource(id, newConfig);
   }
 }

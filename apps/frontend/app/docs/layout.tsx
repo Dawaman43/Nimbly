@@ -1,11 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   BookOpen,
   Terminal,
@@ -15,7 +22,10 @@ import {
   Shield,
   Zap,
   ChevronRight,
+  ChevronDown,
   Home,
+  Search,
+  X,
 } from "lucide-react";
 
 const docsNavigation = [
@@ -103,6 +113,50 @@ interface DocsLayoutProps {
 
 export default function DocsLayout({ children }: DocsLayoutProps) {
   const pathname = usePathname();
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["Getting Started", "Core Concepts"]) // Default expanded sections
+  );
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const toggleSection = (sectionTitle: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionTitle)) {
+        newSet.delete(sectionTitle);
+      } else {
+        newSet.add(sectionTitle);
+      }
+      return newSet;
+    });
+  };
+
+  // Flatten all docs items for search
+  const allDocsItems = docsNavigation.flatMap((section) =>
+    section.items.map((item) => ({
+      ...item,
+      section: section.title,
+    }))
+  );
+
+  const filteredItems = allDocsItems.filter(
+    (item) =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.section.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,6 +172,18 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="hidden md:flex items-center gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Search
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
                 Dashboard
@@ -138,31 +204,46 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
           <div className="sticky top-24">
             <ScrollArea className="h-[calc(100vh-8rem)]">
               <div className="space-y-6">
-                {docsNavigation.map((section) => (
-                  <div key={section.title}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <section.icon className="h-4 w-4 text-muted-foreground" />
-                      <h4 className="font-semibold text-sm">{section.title}</h4>
+                {docsNavigation.map((section) => {
+                  const isExpanded = expandedSections.has(section.title);
+                  return (
+                    <div key={section.title}>
+                      <button
+                        onClick={() => toggleSection(section.title)}
+                        className="flex items-center gap-2 mb-3 w-full text-left hover:text-foreground transition-colors"
+                      >
+                        <section.icon className="h-4 w-4 text-muted-foreground" />
+                        <h4 className="font-semibold text-sm flex-1">
+                          {section.title}
+                        </h4>
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <ul className="space-y-1">
+                          {section.items.map((item) => (
+                            <li key={item.href}>
+                              <Link
+                                href={item.href}
+                                className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
+                                  pathname === item.href
+                                    ? "bg-orange-100 text-orange-900 dark:bg-orange-900/20 dark:text-orange-100"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                }`}
+                              >
+                                <ChevronRight className="h-3 w-3" />
+                                {item.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
-                    <ul className="space-y-1">
-                      {section.items.map((item) => (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
-                              pathname === item.href
-                                ? "bg-orange-100 text-orange-900 dark:bg-orange-900/20 dark:text-orange-100"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            }`}
-                          >
-                            <ChevronRight className="h-3 w-3" />
-                            {item.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
@@ -171,6 +252,65 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
         {/* Main Content */}
         <main className="flex-1 max-w-4xl">{children}</main>
       </div>
+
+      {/* Search Modal */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Search Documentation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search docs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                autoFocus
+              />
+            </div>
+            <ScrollArea className="max-h-96">
+              {searchQuery && (
+                <div className="space-y-2">
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setSearchOpen(false)}
+                        className="block p-3 rounded-md hover:bg-muted transition-colors"
+                      >
+                        <div className="font-medium text-sm">{item.title}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {item.section}
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No results found for "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
+              {!searchQuery && (
+                <div className="p-4 text-center text-muted-foreground">
+                  <div className="text-sm mb-2">Quick Search Tips:</div>
+                  <div className="text-xs space-y-1">
+                    <div>• Type to search through all documentation</div>
+                    <div>• Search by section name or page title</div>
+                    <div>• Press Enter to navigate to results</div>
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -34,6 +34,18 @@ export class CloudResourcesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get(':id/metrics')
+  async getMetrics(@Param('id') id: string) {
+    return await this.cloudService.getResourceMetrics(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/status')
+  async getStatus(@Param('id') id: string) {
+    return { status: await this.cloudService.getResourceStatus(id) };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post()
   async create(
     @Request() req,
@@ -41,5 +53,11 @@ export class CloudResourcesController {
   ): Promise<CloudResource> {
     const userId = req.user.userId;
     return await this.cloudService.create({ ...resource, userId });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/scale')
+  async scale(@Param('id') id: string, @Body() newConfig: Record<string, any>) {
+    return await this.cloudService.scaleResource(id, newConfig);
   }
 }

@@ -8,5 +8,6 @@ import { CloudResource } from './cloud-resource.entity';
   imports: [TypeOrmModule.forFeature([CloudResource])],
   controllers: [CloudResourcesController],
   providers: [CloudResourcesService],
+  exports: [CloudResourcesService],
 })
-export class CloudResourcesModule { }
+export class CloudResourcesModule {}

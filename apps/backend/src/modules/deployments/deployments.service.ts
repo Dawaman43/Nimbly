@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Deployment } from './deployment.entity';
 import { CloudResource } from '../cloud-resources/cloud-resource.entity';
+import { DeploymentStateMachine } from './deployment-state-machine.service';
 
 @Injectable()
 export class DeploymentsService implements OnModuleInit {
@@ -11,13 +12,14 @@ export class DeploymentsService implements OnModuleInit {
     private deploymentsRepository: Repository<Deployment>,
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
+    private stateMachine: DeploymentStateMachine,
   ) {}
 
   async onModuleInit() {
     // Don't seed deployments - users should create their own
     // New users will start with empty deployments
     return;
-    
+
     // OLD SEEDING CODE - DISABLED
     /*
     const count = await this.deploymentsRepository.count();
@@ -105,6 +107,55 @@ export class DeploymentsService implements OnModuleInit {
       where: { userId },
       order: { startedAt: 'DESC' },
       relations: ['resource'],
+    });
+  }
+
+  async create(
+    userId: string,
+    resourceId: string,
+    action: 'restart' | 'scale-up' | 'scale-down' | 'update',
+    version: string,
+    name?: string,
+  ): Promise<Deployment> {
+    // Verify resource exists and belongs to user
+    const resource = await this.resourceRepository.findOne({
+      where: { id: resourceId, userId },
+    });
+
+    if (!resource) {
+      throw new Error(`Resource ${resourceId} not found or access denied`);
+    }
+
+    const deployment = this.deploymentsRepository.create({
+      userId,
+      resourceId,
+      action,
+      version,
+      name: name || `${resource.name}-${action}-${Date.now()}`,
+      status: 'pending',
+      startedAt: new Date(),
+      timestamp: new Date(),
+    });
+
+    return this.deploymentsRepository.save(deployment);
+  }
+
+  async startDeployment(deploymentId: string): Promise<Deployment> {
+    return this.stateMachine.startDeployment(deploymentId);
+  }
+
+  async retryDeployment(deploymentId: string): Promise<Deployment> {
+    return this.stateMachine.retryDeployment(deploymentId);
+  }
+
+  async rollbackDeployment(deploymentId: string): Promise<Deployment> {
+    return this.stateMachine.rollbackDeployment(deploymentId);
+  }
+
+  async getDeployment(deploymentId: string): Promise<Deployment | null> {
+    return this.deploymentsRepository.findOne({
+      where: { id: deploymentId },
+      relations: ['resource', 'user'],
     });
   }
 }

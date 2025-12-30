@@ -41,10 +41,23 @@ export class Deployment {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'in-progress', 'successful', 'failed'],
+    enum: [
+      'pending',
+      'in-progress',
+      'successful',
+      'failed',
+      'rolling-back',
+      'rolled-back',
+    ],
     default: 'pending',
   })
-  status: 'pending' | 'in-progress' | 'successful' | 'failed';
+  status:
+    | 'pending'
+    | 'in-progress'
+    | 'successful'
+    | 'failed'
+    | 'rolling-back'
+    | 'rolled-back';
 
   @CreateDateColumn()
   startedAt: Date;
