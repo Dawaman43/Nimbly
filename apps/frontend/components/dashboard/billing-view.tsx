@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     CreditCard, FileText, Download,
     AlertTriangle, PieChart, Check
@@ -14,8 +14,34 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { api } from "@/lib/api";
 
 export default function BillingView() {
+    const [summary, setSummary] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchBilling = async () => {
+            try {
+                const data = await api.get('/billing');
+                setSummary(data);
+            } catch (error) {
+                console.error("Failed to load billing", error);
+            }
+        };
+        fetchBilling();
+    }, []);
+
+    const invoices = [
+        { id: "INV-2023-001", date: "Oct 1, 2023", amount: "$210.50", status: "Paid" },
+        { id: "INV-2023-002", date: "Sep 1, 2023", amount: "$185.00", status: "Paid" },
+        { id: "INV-2023-003", date: "Aug 1, 2023", amount: "$145.20", status: "Paid" },
+        { id: "INV-2023-004", date: "Jul 1, 2023", amount: "$120.00", status: "Paid" },
+    ];
+
+    if (!summary) return <div className="p-8">Loading billing data...</div>;
+
+    const percentage = Math.min(100, (summary.totalAmount / 500) * 100);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -37,29 +63,33 @@ export default function BillingView() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-baseline gap-2 mb-4">
-                            <span className="text-4xl font-bold">$245.67</span>
+                            <span className="text-4xl font-bold">${summary.totalAmount?.toFixed(2) || '0.00'}</span>
                             <span className="text-muted-foreground">/ $500 limit</span>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span>Progress to budget alert</span>
-                                <span className="font-medium text-orange-600">49%</span>
+                                <span className="font-medium text-orange-600">{percentage.toFixed(0)}%</span>
                             </div>
-                            <Progress value={49} className="h-2 w-full bg-muted rounded-full overflow-hidden" />
+                            <Progress value={percentage} className="h-2 w-full bg-muted rounded-full overflow-hidden" />
                             <p className="text-xs text-muted-foreground pt-1">
-                                You are projected to spend <span className="font-medium text-foreground">$310.00</span> by end of month.
+                                You are projected to spend <span className="font-medium text-foreground">${(summary.totalAmount * 1.1).toFixed(2)}</span> by end of month.
                             </p>
                         </div>
 
                         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="p-3 bg-muted/40 rounded-lg border">
                                 <div className="text-sm font-medium text-muted-foreground mb-1">Compute</div>
-                                <div className="text-lg font-bold">$120.50</div>
+                                <div className="text-lg font-bold">
+                                    ${(summary.breakdown?.find((b: any) => b.service === 'EC2')?.cost || 0).toFixed(2)}
+                                </div>
                             </div>
                             <div className="p-3 bg-muted/40 rounded-lg border">
                                 <div className="text-sm font-medium text-muted-foreground mb-1">Database</div>
-                                <div className="text-lg font-bold">$85.20</div>
+                                <div className="text-lg font-bold">
+                                    ${(summary.breakdown?.find((b: any) => b.service === 'RDS')?.cost || 0).toFixed(2)}
+                                </div>
                             </div>
                             <div className="p-3 bg-muted/40 rounded-lg border">
                                 <div className="text-sm font-medium text-muted-foreground mb-1">Bandwidth</div>
@@ -115,12 +145,7 @@ export default function BillingView() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {[
-                                { id: "INV-2023-001", date: "Oct 1, 2023", amount: "$210.50", status: "Paid" },
-                                { id: "INV-2023-002", date: "Sep 1, 2023", amount: "$185.00", status: "Paid" },
-                                { id: "INV-2023-003", date: "Aug 1, 2023", amount: "$145.20", status: "Paid" },
-                                { id: "INV-2023-004", date: "Jul 1, 2023", amount: "$120.00", status: "Paid" },
-                            ].map((inv) => (
+                            {invoices.map((inv) => (
                                 <TableRow key={inv.id}>
                                     <TableCell className="font-medium">{inv.id}</TableCell>
                                     <TableCell>{inv.date}</TableCell>

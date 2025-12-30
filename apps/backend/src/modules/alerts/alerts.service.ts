@@ -1,33 +1,50 @@
-import { Injectable } from '@nestjs/common';
-
-export interface Alert {
-    id: string;
-    type: 'critical' | 'warning' | 'info' | 'success';
-    title: string;
-    message: string;
-    timestamp: Date;
-}
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Alert } from './alert.entity';
 
 @Injectable()
-export class AlertsService {
-    private alerts: Alert[] = [
-        {
-            id: 'alert-1',
-            type: 'warning',
-            title: 'High Latency',
-            message: 'Region us-east-1 is experiencing degraded performance.',
-            timestamp: new Date(),
-        },
-        {
-            id: 'alert-2',
-            type: 'success',
-            title: 'Backup Ready',
-            message: 'Snapshot sn-492 completed.',
-            timestamp: new Date(Date.now() - 1000 * 60 * 30),
-        }
-    ];
+export class AlertsService implements OnModuleInit {
+    constructor(
+        @InjectRepository(Alert)
+        private alertsRepository: Repository<Alert>,
+    ) { }
 
-    findAll(): Alert[] {
-        return this.alerts;
+    async onModuleInit() {
+        const count = await this.alertsRepository.count();
+        if (count === 0) {
+            const seeds = [
+                {
+                    type: 'CPU', // mapped enum
+                    threshold: 90,
+                    userId: 'user-1',
+                    resourceId: 'res-1',
+                    triggeredAt: new Date()
+                },
+                {
+                    type: 'Storage',
+                    threshold: 85,
+                    userId: 'user-1',
+                    resourceId: 'res-4',
+                    triggeredAt: new Date(Date.now() - 1000 * 60 * 30)
+                }
+            ];
+            await this.alertsRepository.save(seeds as any[]);
+        }
+    }
+
+    async findAll(): Promise<any[]> {
+        const alerts = await this.alertsRepository.find({
+            order: { triggeredAt: 'DESC' }
+        });
+
+        // Transform to what frontend expects
+        return alerts.map(a => ({
+            id: a.id,
+            type: a.type === 'CPU' || a.type === 'RAM' ? 'warning' : 'info', // Simple mapping
+            title: `${a.type} Alert`,
+            message: `${a.type} usage exceeded threshold of ${a.threshold}%`,
+            timestamp: a.triggeredAt
+        }));
     }
 }
