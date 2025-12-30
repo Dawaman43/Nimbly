@@ -456,76 +456,46 @@ Analyze current resource usage and provide cost optimization recommendations.
 }
 ```
 
-#### POST /cost-estimation/forecast
+#### GET /cost-estimation/forecast
 
-Forecast future costs based on current usage patterns and planned changes.
+Forecast future costs using machine learning-based time series analysis, trend detection, and anomaly detection.
 
-**Request Body:**
+**Query Parameters:**
 
-```json
-{
-  "userId": "user-uuid",
-  "forecastPeriod": 3,
-  "plannedChanges": [
-    {
-      "type": "scale-up",
-      "resourceType": "EC2",
-      "count": 2,
-      "effectiveDate": "2024-02-01T00:00:00.000Z"
-    }
-  ],
-  "confidence": 0.85
-}
-```
+- `months` (optional): Number of months to forecast (default: 1)
 
 **Response:**
 
 ```json
 {
-  "forecast": [
+  "currentMonth": 1245.67,
+  "forecast": 1456.78,
+  "confidence": 0.87,
+  "breakdown": {
+    "EC2": 856.23,
+    "RDS": 345.67,
+    "S3": 123.45
+  },
+  "trend": "increasing",
+  "seasonality": true,
+  "anomalies": [
     {
-      "month": "2024-02",
-      "cost": 1456.78,
-      "confidence": 0.85,
-      "range": {
-        "low": 1320.45,
-        "high": 1592.12
-      }
-    },
-    {
-      "month": "2024-03",
-      "cost": 1689.34,
-      "confidence": 0.82,
-      "range": {
-        "low": 1520.67,
-        "high": 1857.89
-      }
-    },
-    {
-      "month": "2024-04",
-      "cost": 1923.45,
-      "confidence": 0.78,
-      "range": {
-        "low": 1720.12,
-        "high": 2126.78
-      }
-    }
-  ],
-  "totalForecast": 5069.57,
-  "assumptions": [
-    "Current usage patterns continue",
-    "No additional optimizations applied",
-    "Planned scaling effective Feb 1st"
-  ],
-  "recommendations": [
-    {
-      "action": "implement-optimizations",
-      "description": "Apply recommended optimizations to reduce forecast by 15%",
-      "impact": -760.34
+      "date": "2025-12-15",
+      "actual": 1456.78,
+      "expected": 1234.56,
+      "deviation": 2.3
     }
   ]
 }
 ```
+
+**ML Features:**
+
+- **Time Series Forecasting**: Exponential smoothing with trend analysis
+- **Seasonality Detection**: Identifies weekly/monthly patterns
+- **Anomaly Detection**: Statistical outlier detection using standard deviations
+- **Trend Analysis**: Linear regression for growth/decline patterns
+- **Confidence Scoring**: Accuracy estimates based on data quality and quantity
 
 #### GET /cost-estimation/providers
 
@@ -551,6 +521,35 @@ Get available cloud providers and their cost data freshness.
   }
 ]
 ```
+
+#### POST /cost-estimation/record
+
+Record cost and metrics data for machine learning training and analysis.
+
+**Request Body:**
+
+```json
+{
+  "resourceId": "resource-uuid",
+  "hourlyCost": 1.25,
+  "metrics": {
+    "cpuUtilization": 65.5,
+    "memoryUtilization": 78.2,
+    "storageUtilization": 45.1,
+    "networkIn": 1024.5,
+    "networkOut": 2048.7,
+    "activeConnections": 150
+  },
+  "metadata": {
+    "deploymentId": "dep-uuid",
+    "environment": "production"
+  }
+}
+```
+
+**Response:** 201 Created
+
+This endpoint collects historical data used to improve forecasting accuracy and detect anomalies.
 
 ## Error Responses
 

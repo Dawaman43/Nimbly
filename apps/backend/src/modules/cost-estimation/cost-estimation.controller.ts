@@ -49,4 +49,33 @@ export class CostEstimationController {
       body.region || 'us-east-1',
     );
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('record')
+  async recordCostData(
+    @Request() req,
+    @Body()
+    body: {
+      resourceId: string;
+      hourlyCost: number;
+      metrics: {
+        cpuUtilization: number;
+        memoryUtilization: number;
+        storageUtilization: number;
+        networkIn: number;
+        networkOut: number;
+        activeConnections: number;
+      };
+      metadata?: Record<string, any>;
+    },
+  ): Promise<void> {
+    const userId = req.user.userId;
+    return this.costService.recordCostData(
+      userId,
+      body.resourceId,
+      body.hourlyCost,
+      body.metrics,
+      body.metadata,
+    );
+  }
 }

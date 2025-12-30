@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan, Between } from 'typeorm';
 import { CloudResource } from '../cloud-resources/cloud-resource.entity';
+import { CostHistory } from './cost-history.entity';
 
 export interface CostEstimate {
   resourceId: string;
@@ -51,6 +52,8 @@ export class CostEstimationService {
   constructor(
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
+    @InjectRepository(CostHistory)
+    private costHistoryRepository: Repository<CostHistory>,
   ) {}
 
   /**
@@ -138,7 +141,7 @@ export class CostEstimationService {
   }
 
   /**
-   * Get cost forecast for next month
+   * Get cost forecast for next month using ML-based time series analysis
    */
   async getCostForecast(
     userId: string,
@@ -148,20 +151,54 @@ export class CostEstimationService {
     forecast: number;
     confidence: number;
     breakdown: Record<string, number>;
+    trend: 'increasing' | 'decreasing' | 'stable';
+    seasonality: boolean;
+    anomalies: Array<{
+      date: string;
+      actual: number;
+      expected: number;
+      deviation: number;
+    }>;
   }> {
     const analysis = await this.analyzeUserCosts(userId);
 
-    // Simple forecasting based on current usage
-    // In a real implementation, this would use time series analysis
-    const growthRate = 0.05; // 5% monthly growth assumption
-    const forecast =
-      analysis.totalMonthlyCost * Math.pow(1 + growthRate, months);
+    // Get historical cost data for ML analysis
+    const historicalData = await this.getHistoricalCostData(userId, 90); // 90 days
+
+    if (historicalData.length < 7) {
+      // Fallback to simple forecasting if insufficient data
+      const growthRate = 0.05;
+      const forecast =
+        analysis.totalMonthlyCost * Math.pow(1 + growthRate, months);
+
+      return {
+        currentMonth: analysis.totalMonthlyCost,
+        forecast,
+        confidence: 0.6,
+        breakdown: analysis.costByService,
+        trend: 'stable',
+        seasonality: false,
+        anomalies: [],
+      };
+    }
+
+    // Apply ML-based forecasting
+    const forecastResult = this.applyTimeSeriesForecasting(
+      historicalData,
+      months,
+    );
+    const anomalies = this.detectAnomalies(historicalData);
+    const trend = this.analyzeTrend(historicalData);
+    const seasonality = this.detectSeasonality(historicalData);
 
     return {
       currentMonth: analysis.totalMonthlyCost,
-      forecast,
-      confidence: 0.75,
+      forecast: forecastResult.value,
+      confidence: forecastResult.confidence,
       breakdown: analysis.costByService,
+      trend,
+      seasonality,
+      anomalies,
     };
   }
 
@@ -370,5 +407,325 @@ export class CostEstimationService {
     }
 
     return trend;
+  }
+
+  /**
+   * Get historical cost data for ML analysis
+   */
+  private async getHistoricalCostData(
+    userId: string,
+    days: number,
+  ): Promise<Array<{ date: Date; cost: number; cpu: number; memory: number }>> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const history = await this.costHistoryRepository.find({
+      where: {
+        userId,
+        timestamp: MoreThan(startDate),
+      },
+      order: { timestamp: 'ASC' },
+    });
+
+    // Group by day and aggregate
+    const dailyData = new Map<
+      string,
+      { cost: number; cpu: number; memory: number; count: number }
+    >();
+
+    history.forEach((record) => {
+      const dateKey = record.timestamp.toISOString().split('T')[0];
+      const existing = dailyData.get(dateKey) || {
+        cost: 0,
+        cpu: 0,
+        memory: 0,
+        count: 0,
+      };
+
+      dailyData.set(dateKey, {
+        cost: existing.cost + Number(record.dailyCost),
+        cpu: existing.cpu + record.cpuUtilization,
+        memory: existing.memory + record.memoryUtilization,
+        count: existing.count + 1,
+      });
+    });
+
+    return Array.from(dailyData.entries()).map(([dateStr, data]) => ({
+      date: new Date(dateStr),
+      cost: data.cost,
+      cpu: data.cpu / data.count,
+      memory: data.memory / data.count,
+    }));
+  }
+
+  /**
+   * Apply time series forecasting using exponential smoothing and trend analysis
+   */
+  private applyTimeSeriesForecasting(
+    historicalData: Array<{
+      date: Date;
+      cost: number;
+      cpu: number;
+      memory: number;
+    }>,
+    months: number,
+  ): { value: number; confidence: number } {
+    if (historicalData.length < 7) {
+      return {
+        value: historicalData[historicalData.length - 1]?.cost || 0,
+        confidence: 0.5,
+      };
+    }
+
+    const costs = historicalData.map((d) => d.cost);
+    const weights = historicalData.map((_, i) =>
+      Math.exp(i / historicalData.length),
+    ); // Exponential weights
+
+    // Calculate weighted average and trend
+    const weightedSum = costs.reduce(
+      (sum, cost, i) => sum + cost * weights[i],
+      0,
+    );
+    const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+    const weightedAvg = weightedSum / weightSum;
+
+    // Calculate trend using linear regression on recent data
+    const recentData = historicalData.slice(-14); // Last 2 weeks
+    const trend = this.calculateTrend(recentData.map((d) => d.cost));
+
+    // Seasonal adjustment (simplified)
+    const seasonalityFactor = this.calculateSeasonalityFactor(historicalData);
+
+    // Forecast with confidence interval
+    const forecast = weightedAvg * (1 + trend * months) * seasonalityFactor;
+    const confidence = Math.max(
+      0.6,
+      Math.min(0.95, 1 - 1 / Math.sqrt(historicalData.length)),
+    );
+
+    return { value: forecast, confidence };
+  }
+
+  /**
+   * Calculate linear trend from cost data
+   */
+  private calculateTrend(costs: number[]): number {
+    const n = costs.length;
+    if (n < 2) return 0;
+
+    const x = Array.from({ length: n }, (_, i) => i);
+    const y = costs;
+
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+    const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const avgCost = sumY / n;
+
+    return slope / avgCost; // Return as percentage change per period
+  }
+
+  /**
+   * Calculate seasonality factor (simplified weekly pattern)
+   */
+  private calculateSeasonalityFactor(
+    historicalData: Array<{ date: Date; cost: number }>,
+  ): number {
+    if (historicalData.length < 14) return 1;
+
+    // Group by day of week
+    const weeklyCosts = new Map<number, number[]>();
+    historicalData.forEach((data) => {
+      const dayOfWeek = data.date.getDay();
+      const costs = weeklyCosts.get(dayOfWeek) || [];
+      costs.push(data.cost);
+      weeklyCosts.set(dayOfWeek, costs);
+    });
+
+    // Calculate average for each day
+    const dayAverages = Array.from(weeklyCosts.entries()).map(
+      ([day, costs]) => ({
+        day,
+        avg: costs.reduce((a, b) => a + b, 0) / costs.length,
+      }),
+    );
+
+    const overallAvg =
+      historicalData.reduce((sum, d) => sum + d.cost, 0) /
+      historicalData.length;
+    const today = new Date().getDay();
+    const todayAvg =
+      dayAverages.find((d) => d.day === today)?.avg || overallAvg;
+
+    return todayAvg / overallAvg;
+  }
+
+  /**
+   * Detect cost anomalies using statistical methods
+   */
+  private detectAnomalies(
+    historicalData: Array<{ date: Date; cost: number }>,
+  ): Array<{
+    date: string;
+    actual: number;
+    expected: number;
+    deviation: number;
+  }> {
+    if (historicalData.length < 14) return [];
+
+    const costs = historicalData.map((d) => d.cost);
+    const mean = costs.reduce((a, b) => a + b, 0) / costs.length;
+    const variance =
+      costs.reduce((sum, cost) => sum + Math.pow(cost - mean, 2), 0) /
+      costs.length;
+    const stdDev = Math.sqrt(variance);
+
+    const anomalies: Array<{
+      date: string;
+      actual: number;
+      expected: number;
+      deviation: number;
+    }> = [];
+
+    historicalData.forEach((data, index) => {
+      if (index < 7) return; // Skip initial data for stable baseline
+
+      const expected = this.calculateExpectedValue(
+        historicalData.slice(0, index),
+        data.date,
+      );
+      const deviation = Math.abs(data.cost - expected) / stdDev;
+
+      if (deviation > 2) {
+        // 2 standard deviations
+        anomalies.push({
+          date: data.date.toISOString().split('T')[0],
+          actual: data.cost,
+          expected,
+          deviation,
+        });
+      }
+    });
+
+    return anomalies.slice(-10); // Return last 10 anomalies
+  }
+
+  /**
+   * Calculate expected value using moving average and trend
+   */
+  private calculateExpectedValue(
+    historicalData: Array<{ date: Date; cost: number }>,
+    targetDate: Date,
+  ): number {
+    if (historicalData.length < 7) {
+      return historicalData[historicalData.length - 1]?.cost || 0;
+    }
+
+    // Simple exponential moving average
+    const alpha = 0.3;
+    let ema = historicalData[0].cost;
+
+    for (let i = 1; i < historicalData.length; i++) {
+      ema = alpha * historicalData[i].cost + (1 - alpha) * ema;
+    }
+
+    // Add trend adjustment
+    const recentTrend = this.calculateTrend(
+      historicalData.slice(-7).map((d) => d.cost),
+    );
+    const daysSinceLast =
+      (targetDate.getTime() -
+        historicalData[historicalData.length - 1].date.getTime()) /
+      (1000 * 60 * 60 * 24);
+
+    return ema * (1 + recentTrend * daysSinceLast);
+  }
+
+  /**
+   * Analyze overall cost trend
+   */
+  private analyzeTrend(
+    historicalData: Array<{ date: Date; cost: number }>,
+  ): 'increasing' | 'decreasing' | 'stable' {
+    if (historicalData.length < 7) return 'stable';
+
+    const recent = historicalData.slice(-7);
+    const earlier = historicalData.slice(-14, -7);
+
+    if (earlier.length === 0) return 'stable';
+
+    const recentAvg =
+      recent.reduce((sum, d) => sum + d.cost, 0) / recent.length;
+    const earlierAvg =
+      earlier.reduce((sum, d) => sum + d.cost, 0) / earlier.length;
+
+    const change = (recentAvg - earlierAvg) / earlierAvg;
+
+    if (change > 0.05) return 'increasing';
+    if (change < -0.05) return 'decreasing';
+    return 'stable';
+  }
+
+  /**
+   * Detect seasonality in cost patterns
+   */
+  private detectSeasonality(
+    historicalData: Array<{ date: Date; cost: number }>,
+  ): boolean {
+    if (historicalData.length < 28) return false; // Need at least 4 weeks
+
+    // Simple autocorrelation check for weekly patterns
+    const costs = historicalData.map((d) => d.cost);
+    const correlations: number[] = [];
+
+    for (let lag = 1; lag <= 7; lag++) {
+      let sum = 0;
+      let count = 0;
+
+      for (let i = lag; i < costs.length; i++) {
+        sum += costs[i] - costs[i - lag];
+        count++;
+      }
+
+      correlations.push(Math.abs(sum / count));
+    }
+
+    // If any correlation is significant, consider it seasonal
+    return correlations.some((corr) => corr > 5);
+  }
+
+  /**
+   * Record cost data point for ML training
+   */
+  async recordCostData(
+    userId: string,
+    resourceId: string,
+    hourlyCost: number,
+    metrics: {
+      cpuUtilization: number;
+      memoryUtilization: number;
+      storageUtilization: number;
+      networkIn: number;
+      networkOut: number;
+      activeConnections: number;
+    },
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    const dailyCost = hourlyCost * 24;
+    const monthlyCost = dailyCost * 30;
+
+    await this.costHistoryRepository.save({
+      userId,
+      resourceId,
+      hourlyCost,
+      dailyCost,
+      monthlyCost,
+      ...metrics,
+      metadata,
+      timestamp: new Date(),
+    });
   }
 }

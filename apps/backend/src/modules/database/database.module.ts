@@ -6,6 +6,7 @@ import { Alert } from '../alerts/alert.entity';
 import { Deployment } from '../deployments/deployment.entity';
 import { Invoice } from '../billing/invoice.entity';
 import { MonitoringLog } from '../monitoring/monitoring-log.entity';
+import { CostHistory } from '../cost-estimation/cost-history.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MonitoringLog } from '../monitoring/monitoring-log.entity';
         Deployment,
         Invoice,
         MonitoringLog,
+        CostHistory,
       ],
       synchronize: true, // auto-create tables for dev
     }),
