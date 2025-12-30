@@ -59,6 +59,21 @@ export class Deployment {
     | 'rolling-back'
     | 'rolled-back';
 
+  @Column({ type: 'json', nullable: true })
+  previousConfig?: Record<string, any>;
+
+  @Column({ type: 'json', nullable: true })
+  rollbackConfig?: Record<string, any>;
+
+  @Column({ type: 'json', nullable: true })
+  transitions?: Array<{
+    from: string;
+    to: string;
+    action: string;
+    timestamp: Date;
+    metadata?: Record<string, any>;
+  }>;
+
   @CreateDateColumn()
   startedAt: Date;
 

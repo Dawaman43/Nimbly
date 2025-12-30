@@ -215,9 +215,49 @@ Retry a failed deployment.
 
 #### POST /deployments/:id/rollback
 
-Rollback a successful deployment.
+Rollback a successful deployment to its previous state. This endpoint:
 
-**Response:** Updated deployment object
+- Captures the current state before rollback
+- Reverts the resource to its pre-deployment configuration
+- Updates the deployment status to `rolled-back`
+- Stores rollback metadata for auditing
+
+**Requirements:**
+
+- Deployment must be in `successful` status
+- A snapshot of the previous state must exist
+
+**Response:** Updated deployment object with rollback details
+
+```json
+{
+  "id": "deployment-uuid",
+  "status": "rolled-back",
+  "previousConfig": {
+    "status": "running",
+    "config": {
+      "cpu": 2,
+      "ram": 8,
+      "storage": 50
+    },
+    "capturedAt": "2025-12-31T09:55:00.000Z"
+  },
+  "transitions": [
+    {
+      "from": "successful",
+      "to": "rolling-back",
+      "action": "start_rollback",
+      "timestamp": "2025-12-31T10:05:00.000Z"
+    },
+    {
+      "from": "rolling-back",
+      "to": "rolled-back",
+      "action": "rollback_completed",
+      "timestamp": "2025-12-31T10:07:00.000Z"
+    }
+  ]
+}
+```
 
 ### Monitoring
 

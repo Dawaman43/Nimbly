@@ -200,4 +200,16 @@ export class CloudResourcesService implements OnModuleInit {
 
     return this.cloudProvider.scaleResource(id, newConfig);
   }
+
+  async update(
+    id: string,
+    updateData: Partial<CloudResource>,
+  ): Promise<CloudResource> {
+    await this.resourceRepository.update(id, updateData);
+    const updated = await this.getOne(id);
+    if (!updated) {
+      throw new Error(`Resource ${id} not found after update`);
+    }
+    return updated;
+  }
 }

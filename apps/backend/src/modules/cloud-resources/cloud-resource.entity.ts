@@ -44,6 +44,12 @@ export class CloudResource {
   @Column('float')
   storage: number;
 
+  @Column({ nullable: true })
+  region?: string;
+
+  @Column({ nullable: true })
+  ip?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }
