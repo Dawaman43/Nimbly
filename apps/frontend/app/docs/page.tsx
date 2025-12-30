@@ -12,7 +12,6 @@ export default function DocsRoute() {
         <>
             <Header
                 onLogin={() => router.push("/auth")}
-                isLoggedIn={false}
                 onLogout={() => { }}
             />
             <DocsPage />

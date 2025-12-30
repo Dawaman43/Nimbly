@@ -12,7 +12,6 @@ export default function PricingRoute() {
         <>
             <Header
                 onLogin={() => router.push("/auth")}
-                isLoggedIn={false}
                 onLogout={() => { }}
             />
             <PricingPage />

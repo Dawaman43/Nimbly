@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-// import { ScrollArea } from "@/components/ui/scroll-area"; // Removed as component is missing
+import { Terminal } from "lucide-react";
 
 export default function DocsPage() {
     return (
@@ -53,8 +53,8 @@ export default function DocsPage() {
                             <p className="text-muted-foreground leading-relaxed mb-4">
                                 Traditional infrastructure tools require you to learn complex DSLs or manage YAML files that span thousands of lines. Nimbly takes a different approach by analyzing your code and automatically provisioning the necessary resources.
                             </p>
-                            <div className="bg-muted/50 p-4 rounded-lg border font-mono text-sm">
-                                <span className="text-blue-500">nimbly</span> deploy --env=production
+                            <div className="bg-muted/50 p-4 rounded-lg border font-mono text-sm flex items-center gap-2">
+                                <span className="text-orange-600 font-bold">nimbly</span> deploy --env=production
                             </div>
                         </section>
 
@@ -73,12 +73,34 @@ export default function DocsPage() {
                             <p className="text-muted-foreground leading-relaxed mb-4">
                                 Install the Nimbly CLI to get started with your first project.
                             </p>
-                            <div className="bg-[#1e1e1e] text-white p-4 rounded-lg border shadow-sm font-mono text-sm overflow-x-auto">
-                                <span className="text-green-400">$</span> npm install -g nimbly-cli<br />
-                                <span className="text-green-400">$</span> nimbly login<br />
-                                <span className="text-green-400">$</span> nimbly init my-app
+                            <div className="bg-[#1e1e1e] text-white p-6 rounded-lg border shadow-sm font-mono text-sm overflow-x-auto relative group">
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs text-white hover:text-white hover:bg-white/10">Copy</Button>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex gap-2">
+                                        <span className="text-green-400 select-none">$</span>
+                                        <span>npm install -g nimbly-cli</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <span className="text-green-400 select-none">$</span>
+                                        <span>nimbly login</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <span className="text-green-400 select-none">$</span>
+                                        <span>nimbly init my-app</span>
+                                    </div>
+                                </div>
                             </div>
                         </section>
+                    </div>
+
+                    <div className="mt-20 pt-8 border-t text-center text-muted-foreground text-sm">
+                        <p>Built by Nimbly Infrastructure. The source code is available on GitHub.</p>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span>All systems operational</span>
+                        </div>
                     </div>
                 </main>
 

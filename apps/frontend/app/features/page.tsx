@@ -12,7 +12,6 @@ export default function FeaturesRoute() {
         <>
             <Header
                 onLogin={() => router.push("/auth")}
-                isLoggedIn={false} // For now
                 onLogout={() => { }}
             />
             <FeaturesPage />

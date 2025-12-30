@@ -21,10 +21,33 @@ interface HeaderProps {
 
 export function Header({
   onLogin,
-  isLoggedIn,
+  isLoggedIn: propIsLoggedIn,
   onLogout,
 }: HeaderProps) {
   const { setTheme } = useTheme();
+  const [internalIsLoggedIn, setInternalIsLoggedIn] = useState(false);
+
+  // Use prop if provided, otherwise default to internal state
+  const isUserLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : internalIsLoggedIn;
+
+  React.useEffect(() => {
+    // Only verify auth if prop is NOT provided (let parent control if they want)
+    if (propIsLoggedIn === undefined) {
+      const token = localStorage.getItem('access_token');
+      setInternalIsLoggedIn(!!token);
+    }
+  }, [propIsLoggedIn]);
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      // Default logout behavior if no handler
+      localStorage.removeItem('access_token');
+      setInternalIsLoggedIn(false);
+      window.location.href = "/";
+    }
+  };
 
   const NavLinks = () => (
     <>
@@ -84,17 +107,17 @@ export function Header({
           </DropdownMenu>
 
           <div className="hidden md:flex gap-4">
-            {isLoggedIn ? (
-              <Button variant="ghost" onClick={onLogout}>
+            {isUserLoggedIn ? (
+              <Button variant="ghost" onClick={handleLogout}>
                 Log out
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={onLogin}>
+                <Button variant="ghost" onClick={onLogin || (() => window.location.href = '/auth')}>
                   Log in
                 </Button>
                 <Button
-                  onClick={onLogin}
+                  onClick={onLogin || (() => window.location.href = '/auth')}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   Sign up
@@ -115,16 +138,16 @@ export function Header({
                 <div className="flex flex-col gap-4 mt-8">
                   <NavLinks />
                   <div className="h-px bg-border my-2" />
-                  {isLoggedIn ? (
-                    <Button variant="ghost" onClick={onLogout} className="justify-start px-0">
+                  {isUserLoggedIn ? (
+                    <Button variant="ghost" onClick={handleLogout} className="justify-start px-0">
                       Log out
                     </Button>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      <Button variant="ghost" onClick={onLogin} className="justify-start px-0">
+                      <Button variant="ghost" onClick={onLogin || (() => window.location.href = '/auth')} className="justify-start px-0">
                         Log in
                       </Button>
-                      <Button onClick={onLogin} className="w-full">
+                      <Button onClick={onLogin || (() => window.location.href = '/auth')} className="w-full">
                         Sign up
                       </Button>
                     </div>
