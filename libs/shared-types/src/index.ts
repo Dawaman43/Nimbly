@@ -1,6 +1,7 @@
 export * from "./alert";
 export * from "./billing";
 export * from "./cloud-provider";
+export * from "./cost-estimation";
 export * from "./deployment";
 export * from "./monitoring";
 export * from "./resource";

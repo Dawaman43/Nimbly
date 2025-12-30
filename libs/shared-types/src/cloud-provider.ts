@@ -1,3 +1,5 @@
+import type { CostEstimate } from "./cost-estimation";
+
 export interface CloudProviderConfig {
   region: string;
   credentials: {
@@ -34,13 +36,6 @@ export interface ResourceMetrics {
   networkIn: number;
   networkOut: number;
   timestamp: string;
-}
-
-export interface CostEstimate {
-  resourceId: string;
-  hourlyRate: number;
-  monthlyEstimate: number;
-  currency: string;
 }
 
 export abstract class CloudProvider {

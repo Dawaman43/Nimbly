@@ -117,9 +117,18 @@ export class MockCloudProvider extends CloudProvider {
 
     return {
       resourceId: config.resourceId || 'estimated',
+      resourceType,
       hourlyRate,
       monthlyEstimate,
       currency: 'USD',
+      breakdown: {
+        compute: monthlyEstimate * 0.6,
+        storage: 0,
+        network: monthlyEstimate * 0.1,
+        other: monthlyEstimate * 0.3,
+      },
+      confidence: 0.85,
+      lastUpdated: new Date().toISOString(),
     };
   }
 

@@ -294,6 +294,224 @@ Get billing information and cost analysis.
 }
 ```
 
+### Cost Estimation
+
+Nimbly provides intelligent cost estimation and optimization recommendations to help you manage cloud infrastructure costs effectively.
+
+#### POST /cost-estimation/estimate
+
+Estimate the cost of deploying specific resources.
+
+**Request Body:**
+
+```json
+{
+  "resources": [
+    {
+      "type": "EC2",
+      "cpu": 2,
+      "ram": 4,
+      "storage": 100,
+      "region": "us-east-1",
+      "hoursPerMonth": 730
+    }
+  ],
+  "currency": "USD"
+}
+```
+
+**Response:**
+
+```json
+{
+  "totalCost": 145.67,
+  "currency": "USD",
+  "breakdown": [
+    {
+      "resourceType": "EC2",
+      "cost": 145.67,
+      "components": [
+        {
+          "name": "Compute (t3.medium)",
+          "cost": 120.45,
+          "unit": "hour",
+          "quantity": 730
+        },
+        {
+          "name": "Storage (gp3)",
+          "cost": 25.22,
+          "unit": "GB-month",
+          "quantity": 100
+        }
+      ]
+    }
+  ],
+  "optimizations": [
+    {
+      "type": "instance-type",
+      "description": "Consider using t3.small for 40% cost savings",
+      "potentialSavings": 58.27,
+      "confidence": 0.85
+    }
+  ]
+}
+```
+
+#### POST /cost-estimation/analysis
+
+Analyze current resource usage and provide cost optimization recommendations.
+
+**Request Body:**
+
+```json
+{
+  "userId": "user-uuid",
+  "timeRange": {
+    "start": "2024-01-01T00:00:00.000Z",
+    "end": "2024-01-31T23:59:59.999Z"
+  },
+  "includeOptimizations": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "totalCost": 1245.67,
+  "currency": "USD",
+  "resources": [
+    {
+      "resourceId": "resource-uuid",
+      "name": "web-server",
+      "type": "EC2",
+      "cost": 345.23,
+      "utilization": 0.65,
+      "efficiency": "under-utilized"
+    }
+  ],
+  "optimizations": [
+    {
+      "resourceId": "resource-uuid",
+      "type": "rightsizing",
+      "description": "Downsize EC2 instance from t3.large to t3.medium",
+      "potentialSavings": 120.45,
+      "confidence": 0.92,
+      "implementation": "manual"
+    },
+    {
+      "resourceId": "resource-uuid",
+      "type": "reserved-instance",
+      "description": "Purchase reserved instance for 1-year term",
+      "potentialSavings": 89.3,
+      "confidence": 0.78,
+      "implementation": "automated"
+    }
+  ],
+  "trends": {
+    "growthRate": 0.12,
+    "forecast": 1456.78,
+    "anomalies": []
+  }
+}
+```
+
+#### POST /cost-estimation/forecast
+
+Forecast future costs based on current usage patterns and planned changes.
+
+**Request Body:**
+
+```json
+{
+  "userId": "user-uuid",
+  "forecastPeriod": 3,
+  "plannedChanges": [
+    {
+      "type": "scale-up",
+      "resourceType": "EC2",
+      "count": 2,
+      "effectiveDate": "2024-02-01T00:00:00.000Z"
+    }
+  ],
+  "confidence": 0.85
+}
+```
+
+**Response:**
+
+```json
+{
+  "forecast": [
+    {
+      "month": "2024-02",
+      "cost": 1456.78,
+      "confidence": 0.85,
+      "range": {
+        "low": 1320.45,
+        "high": 1592.12
+      }
+    },
+    {
+      "month": "2024-03",
+      "cost": 1689.34,
+      "confidence": 0.82,
+      "range": {
+        "low": 1520.67,
+        "high": 1857.89
+      }
+    },
+    {
+      "month": "2024-04",
+      "cost": 1923.45,
+      "confidence": 0.78,
+      "range": {
+        "low": 1720.12,
+        "high": 2126.78
+      }
+    }
+  ],
+  "totalForecast": 5069.57,
+  "assumptions": [
+    "Current usage patterns continue",
+    "No additional optimizations applied",
+    "Planned scaling effective Feb 1st"
+  ],
+  "recommendations": [
+    {
+      "action": "implement-optimizations",
+      "description": "Apply recommended optimizations to reduce forecast by 15%",
+      "impact": -760.34
+    }
+  ]
+}
+```
+
+#### GET /cost-estimation/providers
+
+Get available cloud providers and their cost data freshness.
+
+**Response:**
+
+```json
+[
+  {
+    "provider": "aws",
+    "name": "Amazon Web Services",
+    "lastUpdated": "2024-01-15T10:30:00.000Z",
+    "regions": ["us-east-1", "us-west-2", "eu-west-1"],
+    "supportedServices": ["EC2", "RDS", "S3", "Lambda"]
+  },
+  {
+    "provider": "mock",
+    "name": "Mock Provider",
+    "lastUpdated": "2024-01-15T10:30:00.000Z",
+    "regions": ["us-east-1"],
+    "supportedServices": ["EC2", "RDS"]
+  }
+]
+```
+
 ## Error Responses
 
 All errors follow this format:

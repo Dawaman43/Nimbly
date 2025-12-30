@@ -8,6 +8,7 @@ import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { TeamModule } from './modules/team/team.module';
+import { CostEstimationModule } from './modules/cost-estimation/cost-estimation.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TeamModule } from './modules/team/team.module';
     BillingModule,
     MonitoringModule,
     TeamModule,
+    CostEstimationModule,
   ],
 })
 export class AppModule {}
