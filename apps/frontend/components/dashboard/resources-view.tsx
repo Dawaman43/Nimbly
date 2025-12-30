@@ -188,7 +188,7 @@ export default function ResourcesView() {
                 </Label>
                 <Select
                   value={newResource.type}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setNewResource({ ...newResource, type: value })
                   }
                 >

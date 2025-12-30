@@ -120,7 +120,7 @@ export default function RestApiPage() {
                       <code>GET</code>
                     </TableCell>
                     <TableCell>
-                      <code>/projects/{id}</code>
+                      <code>/projects/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Get project details</TableCell>
                   </TableRow>
@@ -129,7 +129,7 @@ export default function RestApiPage() {
                       <code>PUT</code>
                     </TableCell>
                     <TableCell>
-                      <code>/projects/{id}</code>
+                      <code>/projects/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Update project</TableCell>
                   </TableRow>
@@ -138,7 +138,7 @@ export default function RestApiPage() {
                       <code>DELETE</code>
                     </TableCell>
                     <TableCell>
-                      <code>/projects/{id}</code>
+                      <code>/projects/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Delete project</TableCell>
                   </TableRow>
@@ -242,7 +242,7 @@ export default function RestApiPage() {
                       <code>GET</code>
                     </TableCell>
                     <TableCell>
-                      <code>/apps/{id}</code>
+                      <code>/apps/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Get application details</TableCell>
                   </TableRow>
@@ -251,7 +251,7 @@ export default function RestApiPage() {
                       <code>POST</code>
                     </TableCell>
                     <TableCell>
-                      <code>/apps/{id}/deploy</code>
+                      <code>/apps/{"{id}"}/deploy</code>
                     </TableCell>
                     <TableCell>Deploy application</TableCell>
                   </TableRow>
@@ -260,7 +260,7 @@ export default function RestApiPage() {
                       <code>POST</code>
                     </TableCell>
                     <TableCell>
-                      <code>/apps/{id}/scale</code>
+                      <code>/apps/{"{id}"}/scale</code>
                     </TableCell>
                     <TableCell>Scale application</TableCell>
                   </TableRow>
@@ -269,7 +269,7 @@ export default function RestApiPage() {
                       <code>DELETE</code>
                     </TableCell>
                     <TableCell>
-                      <code>/apps/{id}</code>
+                      <code>/apps/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Delete application</TableCell>
                   </TableRow>
@@ -374,7 +374,7 @@ export default function RestApiPage() {
                       <code>GET</code>
                     </TableCell>
                     <TableCell>
-                      <code>/resources/{id}</code>
+                      <code>/resources/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Get resource details</TableCell>
                   </TableRow>
@@ -383,7 +383,7 @@ export default function RestApiPage() {
                       <code>PUT</code>
                     </TableCell>
                     <TableCell>
-                      <code>/resources/{id}</code>
+                      <code>/resources/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Update resource</TableCell>
                   </TableRow>
@@ -392,7 +392,7 @@ export default function RestApiPage() {
                       <code>DELETE</code>
                     </TableCell>
                     <TableCell>
-                      <code>/resources/{id}</code>
+                      <code>/resources/{"{id}"}</code>
                     </TableCell>
                     <TableCell>Delete resource</TableCell>
                   </TableRow>
@@ -401,7 +401,7 @@ export default function RestApiPage() {
                       <code>POST</code>
                     </TableCell>
                     <TableCell>
-                      <code>/resources/{id}/backup</code>
+                      <code>/resources/{"{id}"}/backup</code>
                     </TableCell>
                     <TableCell>Create backup</TableCell>
                   </TableRow>
