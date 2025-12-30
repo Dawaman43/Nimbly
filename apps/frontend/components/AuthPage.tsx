@@ -31,7 +31,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
     const password = (e.target as any).password.value;
 
     try {
-      const res = await fetch("http://localhost:4000/auth/login", {
+      const res = await fetch("http://[::1]:4000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -68,7 +68,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
     const password = (e.target as any).elements["register-password"].value;
 
     try {
-      const res = await fetch("http://localhost:4000/auth/signup", {
+      const res = await fetch("http://[::1]:4000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -78,7 +78,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
 
       // Auto login after register? Or just ask to login.
       // Let's auto-login for better UX
-      const loginRes = await fetch("http://localhost:4000/auth/login", {
+      const loginRes = await fetch("http://[::1]:4000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
