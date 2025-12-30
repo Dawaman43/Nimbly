@@ -89,16 +89,24 @@ export default function DashboardLayout({
 
   // Usage Limit Widget Component
   function UsageLimitWidget() {
-    const [usage, setUsage] = React.useState<{ current: number; budget: number; percentage: number } | null>(null);
+    const [usage, setUsage] = React.useState<{
+      current: number;
+      budget: number;
+      percentage: number;
+    } | null>(null);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
       const fetchUsage = async () => {
         try {
-          const billingData = await api.get('/billing');
-          const percentage = billingData.budget > 0 
-            ? Math.min(100, (billingData.currentSpend / billingData.budget) * 100)
-            : 0;
+          const billingData = await api.get("/billing");
+          const percentage =
+            billingData.budget > 0
+              ? Math.min(
+                  100,
+                  (billingData.currentSpend / billingData.budget) * 100
+                )
+              : 0;
           setUsage({
             current: billingData.currentSpend || 0,
             budget: billingData.budget || 0,
@@ -116,7 +124,7 @@ export default function DashboardLayout({
     if (loading) {
       return (
         <div className="p-4 border-t">
-          <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
+          <div className="bg-muted/50 p-4 rounded-lg border border-border">
             <div className="h-4 bg-muted animate-pulse rounded mb-2" />
             <div className="h-1.5 bg-muted animate-pulse rounded" />
           </div>
@@ -126,20 +134,56 @@ export default function DashboardLayout({
 
     if (!usage) return null;
 
+    // Determine color scheme based on usage percentage
+    const getColorScheme = (percentage: number) => {
+      if (percentage < 33) {
+        return {
+          bg: "bg-green-50 dark:bg-green-950/20",
+          border: "border-green-100 dark:border-green-900",
+          text: "text-green-800 dark:text-green-400",
+          progressBg: "bg-green-200 dark:bg-green-900",
+          progressFill: "bg-green-500",
+        };
+      } else if (percentage < 67) {
+        return {
+          bg: "bg-yellow-50 dark:bg-yellow-950/20",
+          border: "border-yellow-100 dark:border-yellow-900",
+          text: "text-yellow-800 dark:text-yellow-400",
+          progressBg: "bg-yellow-200 dark:bg-yellow-900",
+          progressFill: "bg-yellow-500",
+        };
+      } else {
+        return {
+          bg: "bg-red-50 dark:bg-red-950/20",
+          border: "border-red-100 dark:border-red-900",
+          text: "text-red-800 dark:text-red-400",
+          progressBg: "bg-red-200 dark:bg-red-900",
+          progressFill: "bg-red-500",
+        };
+      }
+    };
+
+    const colorScheme = getColorScheme(usage.percentage);
+
     return (
       <div className="p-4 border-t">
-        <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
-          <p className="text-xs font-medium text-orange-800 dark:text-orange-400 mb-2">
+        <div
+          className={`${colorScheme.bg} p-4 rounded-lg border ${colorScheme.border}`}
+        >
+          <p className={`text-xs font-medium ${colorScheme.text} mb-2`}>
             Usage Limit
           </p>
-          <div className="h-1.5 w-full bg-orange-200 dark:bg-orange-900 rounded-full mb-2 overflow-hidden">
-            <div 
-              className="h-full bg-orange-500 rounded-full transition-all duration-300" 
+          <div
+            className={`h-1.5 w-full ${colorScheme.progressBg} rounded-full mb-2 overflow-hidden`}
+          >
+            <div
+              className={`h-full ${colorScheme.progressFill} rounded-full transition-all duration-300`}
               style={{ width: `${usage.percentage}%` }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground">
-            {usage.percentage.toFixed(0)}% of ${usage.budget.toFixed(2)} budget used
+            {usage.percentage.toFixed(0)}% of ${usage.budget.toFixed(2)} budget
+            used
           </p>
         </div>
       </div>
@@ -206,7 +250,7 @@ export default function DashboardLayout({
         {/* Top Header */}
         <header className="h-16 border-b bg-background/50 backdrop-blur sticky top-0 z-10 px-4 sm:px-6 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 font-bold min-w-0">
-            <Cloud className="h-5 w-5 text-orange-600 flex-shrink-0" /> 
+            <Cloud className="h-5 w-5 text-orange-600 flex-shrink-0" />
             <span className="hidden sm:inline">Nimbly</span>
           </div>
 
@@ -264,10 +308,20 @@ export default function DashboardLayout({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>Profile</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/dashboard/billing")}>Billing</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/settings")}
+                >
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/billing")}
+                >
+                  Billing
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  Log out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -290,7 +344,9 @@ export default function DashboardLayout({
                   : "text-muted-foreground active:text-orange-600 active:bg-orange-50/30"
               }`}
             >
-              <item.icon className={`h-5 w-5 mb-0.5 ${isActive ? 'scale-110' : ''} transition-transform`} />
+              <item.icon
+                className={`h-5 w-5 mb-0.5 ${isActive ? "scale-110" : ""} transition-transform`}
+              />
               <span className="text-[9px] sm:text-[10px] font-medium tracking-tight truncate w-full text-center leading-tight">
                 {item.label}
               </span>
