@@ -17,23 +17,28 @@ interface HeaderProps {
   onLogin?: () => void;
   isLoggedIn?: boolean;
   onLogout?: () => void;
+  user?: { name: string; email: string };
+  showDashboardLink?: boolean;
 }
 
 export function Header({
   onLogin,
   isLoggedIn: propIsLoggedIn,
   onLogout,
+  user,
+  showDashboardLink = false,
 }: HeaderProps) {
   const { setTheme } = useTheme();
   const [internalIsLoggedIn, setInternalIsLoggedIn] = useState(false);
 
   // Use prop if provided, otherwise default to internal state
-  const isUserLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : internalIsLoggedIn;
+  const isUserLoggedIn =
+    propIsLoggedIn !== undefined ? propIsLoggedIn : internalIsLoggedIn;
 
   React.useEffect(() => {
     // Only verify auth if prop is NOT provided (let parent control if they want)
     if (propIsLoggedIn === undefined) {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       setInternalIsLoggedIn(!!token);
     }
   }, [propIsLoggedIn]);
@@ -43,7 +48,7 @@ export function Header({
       onLogout();
     } else {
       // Default logout behavior if no handler
-      localStorage.removeItem('access_token');
+      localStorage.removeItem("access_token");
       setInternalIsLoggedIn(false);
       window.location.href = "/";
     }
@@ -51,7 +56,10 @@ export function Header({
 
   const NavLinks = () => (
     <>
-      <Link href="/features" className="hover:text-foreground transition-colors">
+      <Link
+        href="/features"
+        className="hover:text-foreground transition-colors"
+      >
         Features
       </Link>
       <Link href="/docs" className="hover:text-foreground transition-colors">
@@ -60,9 +68,14 @@ export function Header({
       <Link href="/pricing" className="hover:text-foreground transition-colors">
         Pricing
       </Link>
-      <Link href="/dashboard" className="hover:text-foreground transition-colors">
-        Dashboard
-      </Link>
+      {showDashboardLink && (
+        <Link
+          href="/dashboard"
+          className="hover:text-foreground transition-colors"
+        >
+          Dashboard
+        </Link>
+      )}
     </>
   );
 
@@ -108,16 +121,26 @@ export function Header({
 
           <div className="hidden md:flex gap-4">
             {isUserLoggedIn ? (
-              <Button variant="ghost" onClick={handleLogout}>
-                Log out
-              </Button>
+              <div className="flex items-center gap-4">
+                {user && (
+                  <div className="text-sm text-muted-foreground">
+                    Welcome, {user.name}
+                  </div>
+                )}
+                <Button variant="ghost" onClick={handleLogout}>
+                  Log out
+                </Button>
+              </div>
             ) : (
               <>
-                <Button variant="ghost" onClick={onLogin || (() => window.location.href = '/auth')}>
+                <Button
+                  variant="ghost"
+                  onClick={onLogin || (() => (window.location.href = "/auth"))}
+                >
                   Log in
                 </Button>
                 <Button
-                  onClick={onLogin || (() => window.location.href = '/auth')}
+                  onClick={onLogin || (() => (window.location.href = "/auth"))}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   Sign up
@@ -139,15 +162,37 @@ export function Header({
                   <NavLinks />
                   <div className="h-px bg-border my-2" />
                   {isUserLoggedIn ? (
-                    <Button variant="ghost" onClick={handleLogout} className="justify-start px-0">
-                      Log out
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      {user && (
+                        <div className="text-sm text-muted-foreground px-2 py-1">
+                          Welcome, {user.name}
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        onClick={handleLogout}
+                        className="justify-start px-0"
+                      >
+                        Log out
+                      </Button>
+                    </div>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      <Button variant="ghost" onClick={onLogin || (() => window.location.href = '/auth')} className="justify-start px-0">
+                      <Button
+                        variant="ghost"
+                        onClick={
+                          onLogin || (() => (window.location.href = "/auth"))
+                        }
+                        className="justify-start px-0"
+                      >
                         Log in
                       </Button>
-                      <Button onClick={onLogin || (() => window.location.href = '/auth')} className="w-full">
+                      <Button
+                        onClick={
+                          onLogin || (() => (window.location.href = "/auth"))
+                        }
+                        className="w-full"
+                      >
                         Sign up
                       </Button>
                     </div>
