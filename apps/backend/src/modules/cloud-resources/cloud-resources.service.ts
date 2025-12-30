@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CloudResource } from './cloud-resource.entity';
 import { CloudProvider, DeploymentRequest } from '@nimbly/shared-types';
 import { MockCloudProvider } from '../../providers/mock-cloud-provider';
+import { AWSCloudProvider } from '../../providers/aws-cloud-provider';
 
 @Injectable()
 export class CloudResourcesService implements OnModuleInit {
@@ -13,14 +14,38 @@ export class CloudResourcesService implements OnModuleInit {
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
   ) {
-    // Initialize with mock provider - in production, this would be injected
-    this.cloudProvider = new MockCloudProvider({
-      region: 'us-east-1',
-      credentials: {
-        accessKeyId: 'mock-key',
-        secretAccessKey: 'mock-secret',
-      },
-    });
+    // Initialize provider based on environment configuration
+    const providerType = process.env.CLOUD_PROVIDER || 'mock';
+    const region = process.env.AWS_REGION || 'us-east-1';
+
+    if (providerType === 'aws') {
+      const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+      if (!accessKeyId || !secretAccessKey) {
+        throw new Error(
+          'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.',
+        );
+      }
+
+      this.cloudProvider = new AWSCloudProvider({
+        region,
+        credentials: {
+          accessKeyId,
+          secretAccessKey,
+          sessionToken: process.env.AWS_SESSION_TOKEN,
+        },
+      });
+    } else {
+      // Default to mock provider
+      this.cloudProvider = new MockCloudProvider({
+        region: 'us-east-1',
+        credentials: {
+          accessKeyId: 'mock-key',
+          secretAccessKey: 'mock-secret',
+        },
+      });
+    }
   }
 
   async onModuleInit() {

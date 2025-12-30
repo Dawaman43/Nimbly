@@ -85,6 +85,42 @@ docker-compose up -d postgres
 npm run dev
 ```
 
+### Configuration
+
+Nimbly supports multiple cloud providers. Configure your provider using environment variables:
+
+#### Mock Provider (Default)
+
+```bash
+# No configuration needed - works out of the box
+CLOUD_PROVIDER=mock
+```
+
+#### AWS Provider
+
+```bash
+# Set environment variables
+export CLOUD_PROVIDER=aws
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=your-access-key
+export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_SESSION_TOKEN=your-session-token  # Optional
+```
+
+#### Docker Environment
+
+```bash
+# Using docker-compose.override.yml
+version: '3.8'
+services:
+  backend:
+    environment:
+      - CLOUD_PROVIDER=aws
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=your-access-key
+      - AWS_SECRET_ACCESS_KEY=your-secret-key
+```
+
 ### First Deployment
 
 ```bash
@@ -163,10 +199,10 @@ npm run db:seed          # Seed development data
 
 #### 🔥 High Priority
 
-- **AWS Provider Implementation**: Real AWS integration using SDK
-- **Cost Estimation Algorithm**: Machine learning-based cost prediction
-- **Deployment Rollback**: Automatic failure recovery
-- **Real-time Monitoring**: WebSocket-based live updates
+- ✅ **AWS Provider Implementation**: Real AWS integration using SDK
+- 🔄 **Cost Estimation Algorithm**: Machine learning-based cost prediction
+- 🔄 **Deployment Rollback**: Automatic failure recovery
+- 🔄 **Real-time Monitoring**: WebSocket-based live updates
 
 #### 🚀 Medium Priority
 
@@ -234,7 +270,7 @@ This allows contributors to work on features **without cloud accounts**.
 
 ### Phase 2: Production Ready (Q1 2026)
 
-- 🔄 AWS provider implementation
+- ✅ AWS provider implementation
 - 🔄 Cost estimation algorithms
 - 🔄 Self-healing deployments
 - 🔄 Real-time monitoring

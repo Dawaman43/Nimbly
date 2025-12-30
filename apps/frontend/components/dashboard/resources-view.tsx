@@ -208,7 +208,7 @@ export default function ResourcesView() {
                 </Label>
                 <Select
                   value={newResource.region}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setNewResource({ ...newResource, region: value })
                   }
                 >
