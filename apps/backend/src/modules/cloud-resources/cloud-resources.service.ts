@@ -13,4 +13,8 @@ export class CloudResourcesService {
   getAll(): CloudResource[] {
     return this.resources;
   }
+
+  getOne(id: string): CloudResource | undefined {
+    return this.resources.find((resource) => resource.id === id);
+  }
 }
