@@ -28,10 +28,13 @@ import {
   CheckCircle2,
   Code2,
   Terminal,
+  Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import Link from "next/link";
+import { DashboardSkeleton, EmptyState } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -92,9 +95,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="p-10 text-center animate-pulse">Loading dashboard...</div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -128,70 +129,104 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Resources
-            </CardTitle>
-            <Server className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalResources}</div>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center">
-              <span className="text-green-600 flex items-center mr-1">
-                <ArrowUpRight className="h-3 w-3 mr-0.5" /> +2
-              </span>
-              new this week
-            </p>
-          </CardContent>
-        </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Resources
+              </CardTitle>
+              <Server className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalResources}</div>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                <span className="text-green-600 flex items-center mr-1">
+                  <ArrowUpRight className="h-3 w-3 mr-0.5" /> +2
+                </span>
+                new this week
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">98.9%</div>
-            <div className="w-full bg-muted h-1 mt-2 rounded-full overflow-hidden">
-              <div className="bg-green-500 h-full w-[98.9%]" />
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">System Health</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">98.9%</div>
+              <div className="w-full bg-muted h-1 mt-2 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "98.9%" }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                  className="bg-green-500 h-full"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-400">
-              Active Alerts
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">
-              {stats.activeAlerts}
-            </div>
-            <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
-              Actions required
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/10 hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-400">
+                Active Alerts
+              </CardTitle>
+              <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+                {stats.activeAlerts}
+              </div>
+              <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
+                Actions required
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Month</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${stats.monthlyCost.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Forecast: ${(stats.monthlyCost * 1.15).toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Month</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${stats.monthlyCost.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Forecast: ${(stats.monthlyCost * 1.15).toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       <div className="grid gap-6 md:grid-cols-7">
         {/* Main Table */}
@@ -229,12 +264,20 @@ export default function DashboardPage() {
               <TableBody>
                 {deployments.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No deployments yet. Create your first resource to see
-                      deployments.
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={Rocket}
+                        title="No deployments yet"
+                        description="Create your first resource to see deployments appear here. Get started in seconds!"
+                        action={
+                          <Link href="/dashboard/resources">
+                            <Button className="bg-orange-600 hover:bg-orange-700">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Deploy Your First Resource
+                            </Button>
+                          </Link>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -309,8 +352,8 @@ export default function DashboardPage() {
                         <TableCell className="text-right text-muted-foreground text-sm">
                           {item.startedAt
                             ? formatDistanceToNow(new Date(item.startedAt), {
-                                addSuffix: true,
-                              })
+                              addSuffix: true,
+                            })
                             : "N/A"}
                         </TableCell>
                       </TableRow>

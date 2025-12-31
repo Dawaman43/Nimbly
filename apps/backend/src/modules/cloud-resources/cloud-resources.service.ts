@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { CloudResource } from './cloud-resource.entity';
 import { CloudProvider, DeploymentRequest } from '@nimbly/shared-types';
 import { MockCloudProvider } from '../../providers/mock-cloud-provider';
@@ -142,7 +143,7 @@ export class CloudResourcesService implements OnModuleInit {
   async create(resource: Partial<CloudResource>): Promise<CloudResource> {
     // First, attempt to deploy the resource via cloud provider
     const deploymentRequest: DeploymentRequest = {
-      resourceId: resource.id || `res_${Date.now()}`,
+      resourceId: resource.id || randomUUID(),
       action: 'create',
       config: {
         name: resource.name,

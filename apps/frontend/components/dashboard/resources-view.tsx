@@ -56,6 +56,9 @@ export default function ResourcesView() {
     name: "",
     type: "",
     region: "us-east-1",
+    cpu: 1,
+    ram: 2,
+    storage: 20,
   });
 
   useEffect(() => {
@@ -117,7 +120,14 @@ export default function ResourcesView() {
     try {
       await api.post("/cloud-resources", newResource);
       setCreateModalOpen(false);
-      setNewResource({ name: "", type: "", region: "us-east-1" });
+      setNewResource({
+        name: "",
+        type: "",
+        region: "us-east-1",
+        cpu: 1,
+        ram: 2,
+        storage: 20,
+      });
       // Refresh the resources list
       const data = await api.get("/cloud-resources", true);
       const mapped = data.map((r: any) => ({
@@ -223,6 +233,60 @@ export default function ResourcesView() {
                     <SelectItem value="eu-west-1">EU West (Ireland)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cpu" className="text-right">
+                  CPU (vCPUs)
+                </Label>
+                <Input
+                  id="cpu"
+                  type="number"
+                  value={newResource.cpu}
+                  onChange={(e) =>
+                    setNewResource({
+                      ...newResource,
+                      cpu: parseFloat(e.target.value) || 1,
+                    })
+                  }
+                  className="col-span-3"
+                  placeholder="1"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="ram" className="text-right">
+                  RAM (GB)
+                </Label>
+                <Input
+                  id="ram"
+                  type="number"
+                  value={newResource.ram}
+                  onChange={(e) =>
+                    setNewResource({
+                      ...newResource,
+                      ram: parseFloat(e.target.value) || 2,
+                    })
+                  }
+                  className="col-span-3"
+                  placeholder="2"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="storage" className="text-right">
+                  Storage (GB)
+                </Label>
+                <Input
+                  id="storage"
+                  type="number"
+                  value={newResource.storage}
+                  onChange={(e) =>
+                    setNewResource({
+                      ...newResource,
+                      storage: parseFloat(e.target.value) || 20,
+                    })
+                  }
+                  className="col-span-3"
+                  placeholder="20"
+                />
               </div>
             </div>
             <DialogFooter>

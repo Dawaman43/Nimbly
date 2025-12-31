@@ -78,7 +78,7 @@ jobs:
         run: npm install
         
       - name: Run tests
-       run: npm test || echo "Tests not yet implemented"
+        run: npm test || echo "Tests not yet implemented"
 
   docker:
     name: Build Docker Images

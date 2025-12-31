@@ -26,7 +26,7 @@ export class MockCloudProvider extends CloudProvider {
 
     // Simulate deployment process
     const result: DeploymentResult = {
-      success: Math.random() > 0.1, // 90% success rate
+      success: true, // Always succeed for development
       resourceId: request.resourceId,
       status: 'successful',
       message: `Mock deployment ${request.action} completed`,
