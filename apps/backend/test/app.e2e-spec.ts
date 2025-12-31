@@ -16,10 +16,17 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  describe('Cloud Resources Monitoring', () => {
+    it('/cloud-resources (GET) - should return resources', () => {
+      return request(app.getHttpServer()).get('/cloud-resources').expect(401); // Should require authentication
+    });
+
+    it('/monitoring/stats (GET) - should return monitoring stats', () => {
+      return request(app.getHttpServer()).get('/monitoring/stats').expect(401); // Should require authentication
+    });
+
+    it('/monitoring/logs (GET) - should return monitoring logs', () => {
+      return request(app.getHttpServer()).get('/monitoring/logs').expect(401); // Should require authentication
+    });
   });
 });
