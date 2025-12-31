@@ -15,9 +15,12 @@ export interface DeploymentRequest {
     | "create"
     | "update"
     | "delete"
+    | "start"
+    | "stop"
+    | "restart"
+    | "terminate"
     | "scale-up"
-    | "scale-down"
-    | "restart";
+    | "scale-down";
   config: Record<string, any>;
 }
 

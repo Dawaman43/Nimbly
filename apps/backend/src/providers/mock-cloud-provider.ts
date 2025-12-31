@@ -44,16 +44,42 @@ export class MockCloudProvider extends CloudProvider {
       result.message = 'Mock deployment failed (simulated error)';
     }
 
-    // Store the resource if it's a create action
-    if (request.action === 'create') {
-      this.resources.set(request.resourceId, {
-        id: request.resourceId,
-        name: request.config.name || `resource-${request.resourceId}`,
-        type: request.config.type || 'EC2',
-        status: result.success ? 'running' : 'error',
-        createdAt: new Date().toISOString(),
-        ...request.config,
-      });
+    // Handle different actions
+    switch (request.action) {
+      case 'create':
+        this.resources.set(request.resourceId, {
+          id: request.resourceId,
+          name: request.config.name || `resource-${request.resourceId}`,
+          type: request.config.type || 'EC2',
+          status: result.success ? 'running' : 'error',
+          createdAt: new Date().toISOString(),
+          ...request.config,
+        });
+        break;
+      case 'start':
+        const startResource = this.resources.get(request.resourceId);
+        if (startResource) {
+          startResource.status = 'running';
+        }
+        break;
+      case 'stop':
+        const stopResource = this.resources.get(request.resourceId);
+        if (stopResource) {
+          stopResource.status = 'stopped';
+        }
+        break;
+      case 'restart':
+        const restartResource = this.resources.get(request.resourceId);
+        if (restartResource) {
+          restartResource.status = 'running';
+        }
+        break;
+      case 'terminate':
+        this.resources.delete(request.resourceId);
+        break;
+      case 'delete':
+        this.resources.delete(request.resourceId);
+        break;
     }
 
     this.deployments.set(deploymentId, {
@@ -89,13 +115,16 @@ export class MockCloudProvider extends CloudProvider {
       throw new Error(`Resource ${resourceId} not found`);
     }
 
-    // Generate realistic mock metrics
+    // Generate realistic mock metrics with some variation
+    const baseCpu = resource.status === 'running' ? 20 + Math.random() * 60 : 0;
+    const baseRam = resource.status === 'running' ? 30 + Math.random() * 50 : 0;
+
     return {
-      cpu: Math.floor(Math.random() * 100),
-      ram: Math.floor(Math.random() * 100),
-      storage: resource.storage || Math.floor(Math.random() * 1000),
-      networkIn: Math.floor(Math.random() * 1000),
-      networkOut: Math.floor(Math.random() * 1000),
+      cpu: Math.round(baseCpu),
+      ram: Math.round(baseRam),
+      storage: resource.storage || Math.round(100 + Math.random() * 900),
+      networkIn: Math.round(Math.random() * 500),
+      networkOut: Math.round(Math.random() * 300),
       timestamp: new Date().toISOString(),
     };
   }

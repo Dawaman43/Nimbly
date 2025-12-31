@@ -14,11 +14,25 @@ import {
   StopCircle,
   RefreshCw,
   Trash2,
+  Activity,
+  Cpu,
+  MemoryStick,
+  HardDriveIcon,
+  Wifi,
+  AlertTriangle,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +66,9 @@ export default function ResourcesView() {
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [resourceMetrics, setResourceMetrics] = useState<any>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [newResource, setNewResource] = useState({
     name: "",
     type: "",
@@ -64,7 +81,7 @@ export default function ResourcesView() {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const data = await api.get("/cloud-resources", true); // Use cache
+        const data = await api.get("/cloud-resources", false); // Don't use cache initially
         // Improve data compatibility: map backend fields to frontend UI fields if necessary
         const mapped = data.map((r: any) => ({
           id: r.id,
@@ -95,6 +112,17 @@ export default function ResourcesView() {
     fetchResources();
   }, []);
 
+  // Auto-refresh metrics every 30 seconds when a resource is selected
+  useEffect(() => {
+    if (!selectedResource) return;
+
+    const interval = setInterval(() => {
+      fetchResourceMetrics(selectedResource.id);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedResource]);
+
   const getIcon = (type: string) => {
     switch (type) {
       case "Compute":
@@ -116,6 +144,61 @@ export default function ResourcesView() {
       (r.ip && r.ip.includes(filter))
   );
 
+  // Simple chart component for resource metrics
+  const MetricChart = ({
+    data,
+    label,
+    color = "bg-blue-500",
+    max = 100,
+  }: {
+    data: number[];
+    label: string;
+    color?: string;
+    max?: number;
+  }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="font-medium">{label}</span>
+        <span className="text-muted-foreground">
+          {data[data.length - 1] || 0}%
+        </span>
+      </div>
+      <div className="flex items-end justify-between h-16 gap-1">
+        {data.slice(-10).map((value, i) => (
+          <div
+            key={i}
+            className="flex-1 bg-muted/30 rounded-t-sm relative group"
+          >
+            <div
+              className={`absolute bottom-0 w-full ${color} rounded-t-sm transition-all duration-300`}
+              style={{ height: `${(value / max) * 100}%` }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const fetchResourceMetrics = async (resourceId: string) => {
+    try {
+      setMetricsLoading(true);
+      const metrics = await api.get(
+        `/cloud-resources/${resourceId}/metrics`,
+        false
+      );
+      setResourceMetrics(metrics);
+    } catch (error) {
+      console.error("Failed to fetch resource metrics", error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  const handleResourceSelect = (resource: any) => {
+    setSelectedResource(resource);
+    fetchResourceMetrics(resource.id);
+  };
+
   const handleCreateResource = async () => {
     try {
       await api.post("/cloud-resources", newResource);
@@ -129,7 +212,7 @@ export default function ResourcesView() {
         storage: 20,
       });
       // Refresh the resources list
-      const data = await api.get("/cloud-resources", true);
+      const data = await api.get("/cloud-resources", false);
       const mapped = data.map((r: any) => ({
         id: r.id,
         name: r.name,
@@ -152,6 +235,36 @@ export default function ResourcesView() {
       setResources(mapped);
     } catch (error) {
       console.error("Failed to create resource", error);
+    }
+  };
+
+  const handleResourceAction = async (resourceId: string, action: string) => {
+    try {
+      await api.post(`/cloud-resources/${resourceId}/${action}`, {});
+      // Refresh the resources list without cache
+      const data = await api.get("/cloud-resources", false);
+      const mapped = data.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        type:
+          r.type === "EC2"
+            ? "Compute"
+            : r.type === "S3"
+              ? "Storage"
+              : r.type === "RDS"
+                ? "Database"
+                : "Network",
+        spec:
+          r.type === "EC2"
+            ? `vCPU ${Math.ceil(r.cpu / 10)} / ${r.ram}GB`
+            : "Standard",
+        region: "us-east-1",
+        status: r.status,
+        ip: r.ip || "-",
+      }));
+      setResources(mapped);
+    } catch (error) {
+      console.error(`Failed to ${action} resource`, error);
     }
   };
 
@@ -332,6 +445,7 @@ export default function ResourcesView() {
           <TabsTrigger value="compute">Compute</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
+          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
@@ -397,17 +511,32 @@ export default function ResourcesView() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleResourceAction(res.id, "start")
+                            }
+                          >
                             <PlayCircle className="mr-2 h-4 w-4" /> Start
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleResourceAction(res.id, "stop")}
+                          >
                             <StopCircle className="mr-2 h-4 w-4" /> Stop
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleResourceAction(res.id, "restart")
+                            }
+                          >
                             <RefreshCw className="mr-2 h-4 w-4" /> Restart
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleResourceAction(res.id, "terminate")
+                            }
+                            className="text-red-600"
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Terminate
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -419,7 +548,228 @@ export default function ResourcesView() {
             </div>
           )}
         </TabsContent>
-        {/* Additional Tab contents would be filtered versions of the above */}
+
+        <TabsContent value="monitoring" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Resource Selection */}
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Resource Monitoring
+                    </CardTitle>
+                    <CardDescription>
+                      Select a resource to view detailed metrics
+                    </CardDescription>
+                  </div>
+                  {selectedResource && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchResourceMetrics(selectedResource.id)}
+                      disabled={metricsLoading}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${metricsLoading ? "animate-spin" : ""}`}
+                      />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {resources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      onClick={() => handleResourceSelect(resource)}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedResource?.id === resource.id
+                          ? "border-orange-500 bg-orange-50 dark:bg-orange-950/20"
+                          : "border-border hover:border-orange-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-muted rounded">
+                          {getIcon(resource.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {resource.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {resource.type}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
+                            resource.status === "running"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {resource.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Metrics Dashboard */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  {selectedResource
+                    ? `${selectedResource.name} Metrics`
+                    : "Select a Resource"}
+                </CardTitle>
+                <CardDescription>
+                  Real-time performance and usage statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedResource ? (
+                  metricsLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="h-4 bg-muted animate-pulse rounded w-24" />
+                          <div className="h-16 bg-muted animate-pulse rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : resourceMetrics ? (
+                    <div className="space-y-6">
+                      {/* CPU Usage */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Cpu className="h-4 w-4 text-orange-500" />
+                          <span className="font-medium">CPU Usage</span>
+                          <Badge variant="outline" className="ml-auto">
+                            {resourceMetrics.cpu}%
+                          </Badge>
+                        </div>
+                        <div className="w-full bg-muted/30 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${resourceMetrics.cpu}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Memory Usage */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <MemoryStick className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium">Memory Usage</span>
+                          <Badge variant="outline" className="ml-auto">
+                            {resourceMetrics.ram}%
+                          </Badge>
+                        </div>
+                        <div className="w-full bg-muted/30 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${resourceMetrics.ram}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Storage Usage */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <HardDriveIcon className="h-4 w-4 text-green-500" />
+                          <span className="font-medium">Storage Usage</span>
+                          <Badge variant="outline" className="ml-auto">
+                            {resourceMetrics.storage}GB
+                          </Badge>
+                        </div>
+                        <div className="w-full bg-muted/30 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min((resourceMetrics.storage / 100) * 100, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Network Traffic */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Wifi className="h-4 w-4 text-purple-500" />
+                            <span className="font-medium text-sm">
+                              Network In
+                            </span>
+                          </div>
+                          <div className="text-2xl font-bold text-purple-600">
+                            {resourceMetrics.networkIn}MB/s
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Wifi className="h-4 w-4 text-indigo-500" />
+                            <span className="font-medium text-sm">
+                              Network Out
+                            </span>
+                          </div>
+                          <div className="text-2xl font-bold text-indigo-600">
+                            {resourceMetrics.networkOut}MB/s
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Alerts */}
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center gap-2 mb-3">
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          <span className="font-medium">Active Alerts</span>
+                        </div>
+                        <div className="space-y-2">
+                          {resourceMetrics.cpu > 80 && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                              <span className="text-sm text-red-700 dark:text-red-300">
+                                High CPU usage detected
+                              </span>
+                            </div>
+                          )}
+                          {resourceMetrics.ram > 85 && (
+                            <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                              <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                                High memory usage detected
+                              </span>
+                            </div>
+                          )}
+                          {resourceMetrics.cpu <= 80 &&
+                            resourceMetrics.ram <= 85 && (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                No active alerts
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Failed to load metrics
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Select a resource from the list to view its metrics
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

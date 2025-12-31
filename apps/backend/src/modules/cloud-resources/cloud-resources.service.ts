@@ -213,4 +213,69 @@ export class CloudResourcesService implements OnModuleInit {
     }
     return updated;
   }
+
+  async startResource(id: string) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+    const result = await this.cloudProvider.deploy({
+      resourceId: id,
+      action: 'start',
+      config: {},
+    });
+    if (result.success) {
+      await this.resourceRepository.update(id, { status: 'running' });
+    }
+    return result;
+  }
+
+  async stopResource(id: string) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+    const result = await this.cloudProvider.deploy({
+      resourceId: id,
+      action: 'stop',
+      config: {},
+    });
+    if (result.success) {
+      await this.resourceRepository.update(id, { status: 'stopped' });
+    }
+    return result;
+  }
+
+  async restartResource(id: string) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+    const result = await this.cloudProvider.deploy({
+      resourceId: id,
+      action: 'restart',
+      config: {},
+    });
+    if (result.success) {
+      await this.resourceRepository.update(id, { status: 'running' });
+    }
+    return result;
+  }
+
+  async terminateResource(id: string) {
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+    const result = await this.cloudProvider.deploy({
+      resourceId: id,
+      action: 'terminate',
+      config: {},
+    });
+    if (result.success) {
+      // Remove from database if terminated successfully
+      await this.resourceRepository.delete(id);
+    }
+    return result;
+  }
 }

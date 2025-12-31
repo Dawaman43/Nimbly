@@ -86,11 +86,17 @@ export class AWSCloudProvider extends CloudProvider {
           return await this.updateResource(request);
         case 'delete':
           return await this.deleteResource(request);
+        case 'start':
+          return await this.startResource(request.resourceId);
+        case 'stop':
+          return await this.stopResource(request.resourceId);
+        case 'restart':
+          return await this.restartResource(request.resourceId);
+        case 'terminate':
+          return await this.terminateResource(request.resourceId);
         case 'scale-up':
         case 'scale-down':
           return await this.scaleResource(request.resourceId, request.config);
-        case 'restart':
-          return await this.restartResource(request.resourceId);
         default:
           throw new Error(`Unsupported action: ${request.action}`);
       }
@@ -315,6 +321,53 @@ export class AWSCloudProvider extends CloudProvider {
       resourceId,
       status: 'successful',
       message: `EC2 instance restarted: ${resourceId}`,
+    };
+  }
+
+  private async startResource(resourceId: string): Promise<DeploymentResult> {
+    const startCommand = new StartInstancesCommand({
+      InstanceIds: [resourceId],
+    });
+
+    await this.ec2Client.send(startCommand);
+
+    return {
+      success: true,
+      resourceId,
+      status: 'successful',
+      message: `EC2 instance started: ${resourceId}`,
+    };
+  }
+
+  private async stopResource(resourceId: string): Promise<DeploymentResult> {
+    const stopCommand = new StopInstancesCommand({
+      InstanceIds: [resourceId],
+    });
+
+    await this.ec2Client.send(stopCommand);
+
+    return {
+      success: true,
+      resourceId,
+      status: 'successful',
+      message: `EC2 instance stopped: ${resourceId}`,
+    };
+  }
+
+  private async terminateResource(
+    resourceId: string,
+  ): Promise<DeploymentResult> {
+    const terminateCommand = new TerminateInstancesCommand({
+      InstanceIds: [resourceId],
+    });
+
+    await this.ec2Client.send(terminateCommand);
+
+    return {
+      success: true,
+      resourceId,
+      status: 'successful',
+      message: `EC2 instance terminated: ${resourceId}`,
     };
   }
 
