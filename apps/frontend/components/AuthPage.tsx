@@ -149,8 +149,8 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4 sm:p-6">
+      <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
             <div className="h-10 w-10 rounded bg-orange-600 flex items-center justify-center text-white">

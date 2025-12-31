@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   BookOpen,
   Terminal,
@@ -25,6 +26,7 @@ import {
   Home,
   Search,
   X,
+  Menu,
 } from "lucide-react";
 
 const docsNavigation = [
@@ -183,21 +185,106 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
                 <span className="text-xs">⌘</span>K
               </kbd>
             </Button>
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/auth">
-              <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                Sign In
-              </Button>
-            </Link>
+
+            {/* Mobile Menu */}
+            <div className="lg:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80">
+                  <div className="flex flex-col gap-6 mt-6">
+                    <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+                      <div className="h-8 w-8 rounded bg-orange-600 flex items-center justify-center text-white">
+                        <Cloud className="h-5 w-5" />
+                      </div>
+                      Nimbly Docs
+                    </div>
+
+                    <ScrollArea className="flex-1">
+                      <div className="space-y-6">
+                        {docsNavigation.map((section) => {
+                          const isExpanded = expandedSections.has(
+                            section.title
+                          );
+                          return (
+                            <div key={section.title}>
+                              <button
+                                onClick={() => toggleSection(section.title)}
+                                className="flex items-center gap-2 mb-3 w-full text-left hover:text-foreground transition-colors"
+                              >
+                                <section.icon className="h-4 w-4 text-muted-foreground" />
+                                <h4 className="font-semibold text-sm flex-1">
+                                  {section.title}
+                                </h4>
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </button>
+                              {isExpanded && (
+                                <div className="ml-6 space-y-1">
+                                  {section.items.map((item) => (
+                                    <Link
+                                      key={item.href}
+                                      href={item.href}
+                                      className={`block p-2 rounded-md text-sm transition-colors ${
+                                        pathname === item.href
+                                          ? "bg-muted text-foreground font-medium"
+                                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                      }`}
+                                    >
+                                      {item.title}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    <div className="border-t pt-4 space-y-2">
+                      <Link href="/dashboard">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                        >
+                          Dashboard
+                        </Button>
+                      </Link>
+                      <Link href="/auth">
+                        <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                          Sign In
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            <div className="hidden lg:flex gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                  Sign In
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 max-w-7xl flex gap-10 py-8">
+      <div className="container mx-auto px-4 max-w-7xl lg:flex lg:gap-10 py-8">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 hidden lg:block">
           <div className="sticky top-24">
