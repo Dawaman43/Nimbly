@@ -212,7 +212,7 @@ export class TemplatesService {
   }
 
   getCategories(): TemplateCategory[] {
-    const categories = [
+    const categories: TemplateCategory[] = [
       {
         id: 'compute',
         name: 'Compute',

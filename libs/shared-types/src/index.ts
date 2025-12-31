@@ -6,4 +6,5 @@ export * from "./deployment";
 export * from "./monitoring";
 export * from "./resource";
 export * from "./team";
+export * from "./templates";
 export * from "./user";

@@ -86,7 +86,7 @@ export class AzureCloudProvider extends CloudProvider {
         other: 0,
       },
       confidence: 0.8,
-      lastUpdated: new Date(),
+      lastUpdated: new Date().toISOString(),
     };
   }
 
