@@ -30,6 +30,13 @@ export class CloudResource {
 
   @Column({
     type: 'enum',
+    enum: ['aws', 'azure', 'gcp', 'mock'],
+    default: 'mock',
+  })
+  provider: 'aws' | 'azure' | 'gcp' | 'mock';
+
+  @Column({
+    type: 'enum',
     enum: ['running', 'stopped', 'terminated', 'error'],
     default: 'running',
   })

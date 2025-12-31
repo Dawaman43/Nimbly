@@ -6,47 +6,93 @@ import { CloudResource } from './cloud-resource.entity';
 import { CloudProvider, DeploymentRequest } from '@nimbly/shared-types';
 import { MockCloudProvider } from '../../providers/mock-cloud-provider';
 import { AWSCloudProvider } from '../../providers/aws-cloud-provider';
+import { AzureCloudProvider } from '../../providers/azure-cloud-provider';
+import { GCPCloudProvider } from '../../providers/gcp-cloud-provider';
 
 @Injectable()
 export class CloudResourcesService implements OnModuleInit {
-  private cloudProvider: CloudProvider;
+  private providers: Map<string, CloudProvider> = new Map();
 
   constructor(
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
   ) {
-    // Initialize provider based on environment configuration
-    const providerType = process.env.CLOUD_PROVIDER || 'mock';
+    // Initialize all cloud providers
     const region = process.env.AWS_REGION || 'us-east-1';
 
-    if (providerType === 'aws') {
-      const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-
-      if (!accessKeyId || !secretAccessKey) {
-        throw new Error(
-          'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.',
-        );
-      }
-
-      this.cloudProvider = new AWSCloudProvider({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-          sessionToken: process.env.AWS_SESSION_TOKEN,
-        },
-      });
-    } else {
-      // Default to mock provider
-      this.cloudProvider = new MockCloudProvider({
+    // Mock provider (default)
+    this.providers.set(
+      'mock',
+      new MockCloudProvider({
         region: 'us-east-1',
         credentials: {
           accessKeyId: 'mock-key',
           secretAccessKey: 'mock-secret',
         },
-      });
+      }),
+    );
+
+    // AWS provider
+    const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    if (awsAccessKeyId && awsSecretAccessKey) {
+      this.providers.set(
+        'aws',
+        new AWSCloudProvider({
+          region,
+          credentials: {
+            accessKeyId: awsAccessKeyId,
+            secretAccessKey: awsSecretAccessKey,
+            sessionToken: process.env.AWS_SESSION_TOKEN,
+          },
+        }),
+      );
     }
+
+    // Azure provider
+    const azureClientId = process.env.AZURE_CLIENT_ID;
+    const azureClientSecret = process.env.AZURE_CLIENT_SECRET;
+    const azureTenantId = process.env.AZURE_TENANT_ID;
+    if (azureClientId && azureClientSecret && azureTenantId) {
+      this.providers.set(
+        'azure',
+        new AzureCloudProvider({
+          region: process.env.AZURE_REGION || 'eastus',
+          credentials: {
+            accessKeyId: azureClientId,
+            secretAccessKey: azureClientSecret,
+          },
+        }),
+      );
+    }
+
+    // GCP provider
+    const gcpKeyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (gcpKeyFile) {
+      this.providers.set(
+        'gcp',
+        new GCPCloudProvider({
+          region: process.env.GCP_REGION || 'us-central1',
+          credentials: {
+            accessKeyId: 'gcp-service-account',
+            secretAccessKey: 'gcp-key',
+          },
+        }),
+      );
+    }
+  }
+
+  private getProviderForResource(resource: CloudResource): CloudProvider {
+    const provider = this.providers.get(resource.provider || 'mock');
+    if (!provider) {
+      throw new Error(`Provider ${resource.provider} not configured`);
+    }
+    return provider;
+  }
+
+  private getDefaultProvider(): CloudProvider {
+    // Default to mock provider if no specific provider is configured
+    return this.providers.get('mock')!;
   }
 
   async onModuleInit() {
@@ -141,6 +187,10 @@ export class CloudResourcesService implements OnModuleInit {
   }
 
   async create(resource: Partial<CloudResource>): Promise<CloudResource> {
+    const provider =
+      this.providers.get(resource.provider || 'mock') ||
+      this.getDefaultProvider();
+
     // First, attempt to deploy the resource via cloud provider
     const deploymentRequest: DeploymentRequest = {
       resourceId: resource.id || randomUUID(),
@@ -154,7 +204,7 @@ export class CloudResourcesService implements OnModuleInit {
       },
     };
 
-    const deploymentResult = await this.cloudProvider.deploy(deploymentRequest);
+    const deploymentResult = await provider.deploy(deploymentRequest);
 
     if (!deploymentResult.success) {
       throw new Error(`Failed to deploy resource: ${deploymentResult.message}`);
@@ -164,6 +214,7 @@ export class CloudResourcesService implements OnModuleInit {
     const newResource = this.resourceRepository.create({
       ...resource,
       id: deploymentRequest.resourceId,
+      provider: resource.provider || 'mock',
       status: 'running', // Assume running after successful deployment
     });
     return this.resourceRepository.save(newResource);
@@ -186,11 +237,18 @@ export class CloudResourcesService implements OnModuleInit {
       throw new Error(`Resource ${id} not found`);
     }
 
-    return this.cloudProvider.getMetrics(id);
+    const provider = this.getProviderForResource(resource);
+    return provider.getMetrics(id);
   }
 
   async getResourceStatus(id: string) {
-    return this.cloudProvider.getResourceStatus(id);
+    const resource = await this.getOne(id);
+    if (!resource) {
+      throw new Error(`Resource ${id} not found`);
+    }
+
+    const provider = this.getProviderForResource(resource);
+    return provider.getResourceStatus(id);
   }
 
   async scaleResource(id: string, newConfig: Record<string, any>) {
@@ -199,7 +257,8 @@ export class CloudResourcesService implements OnModuleInit {
       throw new Error(`Resource ${id} not found`);
     }
 
-    return this.cloudProvider.scaleResource(id, newConfig);
+    const provider = this.getProviderForResource(resource);
+    return provider.scaleResource(id, newConfig);
   }
 
   async update(
@@ -219,7 +278,8 @@ export class CloudResourcesService implements OnModuleInit {
     if (!resource) {
       throw new Error(`Resource ${id} not found`);
     }
-    const result = await this.cloudProvider.deploy({
+    const provider = this.getProviderForResource(resource);
+    const result = await provider.deploy({
       resourceId: id,
       action: 'start',
       config: {},
@@ -235,7 +295,8 @@ export class CloudResourcesService implements OnModuleInit {
     if (!resource) {
       throw new Error(`Resource ${id} not found`);
     }
-    const result = await this.cloudProvider.deploy({
+    const provider = this.getProviderForResource(resource);
+    const result = await provider.deploy({
       resourceId: id,
       action: 'stop',
       config: {},
@@ -251,7 +312,8 @@ export class CloudResourcesService implements OnModuleInit {
     if (!resource) {
       throw new Error(`Resource ${id} not found`);
     }
-    const result = await this.cloudProvider.deploy({
+    const provider = this.getProviderForResource(resource);
+    const result = await provider.deploy({
       resourceId: id,
       action: 'restart',
       config: {},
@@ -267,7 +329,8 @@ export class CloudResourcesService implements OnModuleInit {
     if (!resource) {
       throw new Error(`Resource ${id} not found`);
     }
-    const result = await this.cloudProvider.deploy({
+    const provider = this.getProviderForResource(resource);
+    const result = await provider.deploy({
       resourceId: id,
       action: 'terminate',
       config: {},

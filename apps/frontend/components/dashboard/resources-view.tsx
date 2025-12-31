@@ -22,6 +22,11 @@ import {
   AlertTriangle,
   TrendingUp,
   BarChart3,
+  BookOpen,
+  Star,
+  DollarSign,
+  Zap,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,9 +74,14 @@ export default function ResourcesView() {
   const [selectedResource, setSelectedResource] = useState<any>(null);
   const [resourceMetrics, setResourceMetrics] = useState<any>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templateCategories, setTemplateCategories] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [newResource, setNewResource] = useState({
     name: "",
     type: "",
+    provider: "mock",
     region: "us-east-1",
     cpu: 1,
     ram: 2,
@@ -99,6 +109,7 @@ export default function ResourcesView() {
               ? `vCPU ${Math.ceil(r.cpu / 10)} / ${r.ram}GB`
               : "Standard",
           region: "us-east-1", // default if missing
+          provider: r.provider || "mock",
           status: r.status,
           ip: r.ip || "-", // Not currently in entity, would need migration, using placeholder
         }));
@@ -110,6 +121,7 @@ export default function ResourcesView() {
       }
     };
     fetchResources();
+    fetchTemplates();
   }, []);
 
   // Auto-refresh metrics every 30 seconds when a resource is selected
@@ -194,6 +206,22 @@ export default function ResourcesView() {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      const [templatesData, categoriesData] = await Promise.all([
+        api.get("/templates", true),
+        api.get("/templates/categories", true),
+      ]);
+      setTemplates(templatesData);
+      setTemplateCategories(categoriesData);
+    } catch (error) {
+      console.error("Failed to fetch templates", error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
   const handleResourceSelect = (resource: any) => {
     setSelectedResource(resource);
     fetchResourceMetrics(resource.id);
@@ -206,6 +234,7 @@ export default function ResourcesView() {
       setNewResource({
         name: "",
         type: "",
+        provider: "mock",
         region: "us-east-1",
         cpu: 1,
         ram: 2,
@@ -304,6 +333,27 @@ export default function ResourcesView() {
                   className="col-span-3"
                   placeholder="my-resource"
                 />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="provider" className="text-right">
+                  Provider
+                </Label>
+                <Select
+                  value={newResource.provider}
+                  onValueChange={(value: string) =>
+                    setNewResource({ ...newResource, provider: value })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select cloud provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mock">Mock Cloud (Demo)</SelectItem>
+                    <SelectItem value="aws">Amazon Web Services</SelectItem>
+                    <SelectItem value="azure">Microsoft Azure</SelectItem>
+                    <SelectItem value="gcp">Google Cloud Platform</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="type" className="text-right">
@@ -446,6 +496,7 @@ export default function ResourcesView() {
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
           <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
@@ -768,6 +819,315 @@ export default function ResourcesView() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-4">
+          <div className="space-y-6">
+            {/* Template Categories */}
+            <div className="flex flex-wrap gap-4">
+              {templateCategories.map((category: any) => (
+                <Card
+                  key={category.id}
+                  className="flex-1 min-w-[200px] cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedTemplate(null)} // Reset selection when clicking category
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                        {category.icon === "Server" && (
+                          <Server className="h-5 w-5 text-orange-600" />
+                        )}
+                        {category.icon === "Database" && (
+                          <Database className="h-5 w-5 text-orange-600" />
+                        )}
+                        {category.icon === "HardDrive" && (
+                          <HardDrive className="h-5 w-5 text-orange-600" />
+                        )}
+                        {category.icon === "Globe" && (
+                          <Globe className="h-5 w-5 text-orange-600" />
+                        )}
+                        {category.icon === "Zap" && (
+                          <Zap className="h-5 w-5 text-orange-600" />
+                        )}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">
+                          {category.name}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {category.templates.length} templates
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+
+            {/* Template Grid */}
+            {templatesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <div className="h-6 bg-muted animate-pulse rounded w-3/4 mb-2" />
+                      <div className="h-4 bg-muted animate-pulse rounded w-full" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+                        <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {templates.map((template: any) => (
+                  <Card
+                    key={template.id}
+                    className={`cursor-pointer hover:shadow-lg transition-all duration-200 ${
+                      selectedTemplate?.id === template.id
+                        ? "ring-2 ring-orange-500"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedTemplate(template)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-muted rounded-lg">
+                            {template.category === "compute" && (
+                              <Server className="h-5 w-5" />
+                            )}
+                            {template.category === "database" && (
+                              <Database className="h-5 w-5" />
+                            )}
+                            {template.category === "storage" && (
+                              <HardDrive className="h-5 w-5" />
+                            )}
+                            {template.category === "network" && (
+                              <Globe className="h-5 w-5" />
+                            )}
+                            {template.category === "serverless" && (
+                              <Zap className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">
+                              {template.name}
+                            </CardTitle>
+                            <div className="flex items-center gap-1 mt-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < template.popularity
+                                      ? "text-yellow-400 fill-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="capitalize">
+                          {template.category}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {template.description}
+                      </p>
+
+                      {/* Template Specs */}
+                      <div className="space-y-2 mb-4">
+                        {template.config.type && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Layers className="h-4 w-4 text-muted-foreground" />
+                            <span>Type: {template.config.type}</span>
+                          </div>
+                        )}
+                        {template.config.cpu && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Cpu className="h-4 w-4 text-muted-foreground" />
+                            <span>CPU: {template.config.cpu} vCPUs</span>
+                          </div>
+                        )}
+                        {template.config.ram && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MemoryStick className="h-4 w-4 text-muted-foreground" />
+                            <span>RAM: {template.config.ram} GB</span>
+                          </div>
+                        )}
+                        {template.config.storage && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <HardDriveIcon className="h-4 w-4 text-muted-foreground" />
+                            <span>Storage: {template.config.storage} GB</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Cost Estimate */}
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">
+                            ${template.estimatedCost.monthly.toFixed(2)}/month
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Deploy template logic would go here
+                            console.log("Deploying template:", template.id);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Deploy
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Template Details Modal */}
+            {selectedTemplate && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {selectedTemplate.category === "compute" && (
+                          <Server className="h-5 w-5" />
+                        )}
+                        {selectedTemplate.category === "database" && (
+                          <Database className="h-5 w-5" />
+                        )}
+                        {selectedTemplate.category === "storage" && (
+                          <HardDrive className="h-5 w-5" />
+                        )}
+                        {selectedTemplate.category === "network" && (
+                          <Globe className="h-5 w-5" />
+                        )}
+                        {selectedTemplate.category === "serverless" && (
+                          <Zap className="h-5 w-5" />
+                        )}
+                        {selectedTemplate.name}
+                      </CardTitle>
+                      <CardDescription>
+                        {selectedTemplate.description}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize">
+                        {selectedTemplate.category}
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < selectedTemplate.popularity
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Configuration Details */}
+                    <div>
+                      <h4 className="font-medium mb-3">Configuration</h4>
+                      <div className="space-y-2">
+                        {Object.entries(selectedTemplate.config).map(
+                          ([key, value]: [string, any]) => (
+                            <div
+                              key={key}
+                              className="flex justify-between py-1"
+                            >
+                              <span className="text-sm text-muted-foreground capitalize">
+                                {key.replace(/([A-Z])/g, " $1").trim()}:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {String(value)}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cost Breakdown */}
+                    <div>
+                      <h4 className="font-medium mb-3">Cost Estimate</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Hourly Rate</span>
+                          <span className="font-medium">
+                            ${selectedTemplate.estimatedCost.hourly.toFixed(4)}
+                            /hr
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Monthly Estimate</span>
+                          <span className="font-medium text-lg">
+                            ${selectedTemplate.estimatedCost.monthly.toFixed(2)}
+                            /month
+                          </span>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground">
+                            * Estimates are based on standard pricing and may
+                            vary based on region and usage patterns.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-2">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTemplate.tags.map((tag: string) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Deploy Button */}
+                  <div className="mt-6 flex justify-end">
+                    <Button
+                      onClick={() => {
+                        // Deploy template logic
+                        console.log("Deploying template:", selectedTemplate.id);
+                      }}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Deploy This Template
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
       </Tabs>

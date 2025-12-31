@@ -9,6 +9,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { TeamModule } from './modules/team/team.module';
 import { CostEstimationModule } from './modules/cost-estimation/cost-estimation.module';
+import { TemplatesModule } from './modules/templates/templates.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CostEstimationModule } from './modules/cost-estimation/cost-estimation.
     MonitoringModule,
     TeamModule,
     CostEstimationModule,
+    TemplatesModule,
   ],
 })
 export class AppModule {}
