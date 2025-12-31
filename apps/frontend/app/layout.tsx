@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Manrope } from "next/font/google"; // Trendy, high-personality types
+import { Inter, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 
-const manrope = Manrope({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
-const bricolage = Bricolage_Grotesque({
+const spaceGrotesk = Space_Grotesk({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Nimbly | Cloud Deployment Infrastructure",
+  title: "Nimbly - Deploy Infrastructure at the Speed of Code",
   description:
-    "Modern cloud deployment platform for mission-critical applications",
+    "An opinionated infrastructure platform that defines how cloud deployments should work. Provider-agnostic, cost-aware, and developer-first.",
 };
 
 export default function RootLayout({
@@ -31,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+        className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"

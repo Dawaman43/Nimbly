@@ -1,18 +1,46 @@
 {
-    "name": "@nimbly/cli",
-    "version": "1.0.0",
-    "description": "Nimbly Infrastructure CLI",
-    "bin": {
-        "nimbly": "./index.js"
-    },
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js"
-    },
-    "dependencies": {
-        "chalk": "^4.1.2",
-        "commander": "^11.1.0",
-        "inquirer": "^8.2.6",
-        "ora": "^5.4.1"
-    }
+  "name": "test-nimbly-cli",
+  "version": "1.0.0",
+  "description": "Nimbly Infrastructure CLI - Deploy without managing servers",
+  "bin": {
+    "nimbly": "index.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"No tests specified\"",
+    "prepublishOnly": "chmod +x index.js"
+  },
+  "keywords": [
+    "cli",
+    "infrastructure",
+    "deployment",
+    "cloud",
+    "aws",
+    "serverless",
+    "devops"
+  ],
+  "author": "Nimbly Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/nimbly.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://nimbly.dev",
+  "bugs": {
+    "url": "https://github.com/your-org/nimbly/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
