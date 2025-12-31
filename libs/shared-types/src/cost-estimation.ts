@@ -21,10 +21,14 @@ export interface CostOptimization {
       | "scale-down"
       | "reserved-instance"
       | "storage-optimization"
-      | "network-optimization";
+      | "network-optimization"
+      | "auto-shutdown"
+      | "rightsizing";
     description: string;
     potentialSavings: number;
     confidence: number;
+    implementationEffort?: "low" | "medium" | "high";
+    riskLevel?: "low" | "medium" | "high";
   }>;
   totalPotentialSavings: number;
 }
@@ -39,4 +43,7 @@ export interface CostAnalysis {
   }>;
   optimizations: CostOptimization[];
   currency: string;
+  aiInsights?: string[];
+  costEfficiency?: number;
+  recommendations?: string[];
 }

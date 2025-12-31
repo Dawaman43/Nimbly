@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, Between } from 'typeorm';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CloudResource } from '../cloud-resources/cloud-resource.entity';
 import { CostHistory } from './cost-history.entity';
 
@@ -27,10 +28,14 @@ export interface CostOptimization {
       | 'scale-down'
       | 'reserved-instance'
       | 'storage-optimization'
-      | 'network-optimization';
+      | 'network-optimization'
+      | 'auto-shutdown'
+      | 'rightsizing';
     description: string;
     potentialSavings: number;
     confidence: number;
+    implementationEffort?: 'low' | 'medium' | 'high';
+    riskLevel?: 'low' | 'medium' | 'high';
   }>;
   totalPotentialSavings: number;
 }
@@ -45,53 +50,102 @@ export interface CostAnalysis {
   }>;
   optimizations: CostOptimization[];
   currency: string;
+  aiInsights?: string[];
+  costEfficiency?: number;
+  recommendations?: string[];
 }
 
 @Injectable()
 export class CostEstimationService {
+  private genAI: GoogleGenerativeAI;
+  private model: any;
+
   constructor(
     @InjectRepository(CloudResource)
     private resourceRepository: Repository<CloudResource>,
     @InjectRepository(CostHistory)
     private costHistoryRepository: Repository<CostHistory>,
-  ) {}
+  ) {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      throw new Error(
+        'GEMINI_API_KEY environment variable is required for Google Generative AI',
+      );
+    }
+    this.genAI = new GoogleGenerativeAI(geminiApiKey);
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  }
 
   /**
-   * Estimate cost for a specific resource configuration
+   * Estimate cost for a specific resource configuration using AI
    */
   async estimateResourceCost(
     resourceType: string,
     config: Record<string, any>,
     region: string = 'us-east-1',
   ): Promise<CostEstimate> {
-    const baseRates = this.getBaseRates(resourceType, region);
-    const hourlyRate = this.calculateHourlyRate(
-      resourceType,
-      config,
-      baseRates,
-    );
-    const monthlyEstimate = hourlyRate * 24 * 30; // Rough monthly estimate
+    try {
+      // Use Gemini AI for intelligent cost estimation
+      const prompt = `
+        As an expert cloud cost analyst, provide a detailed cost estimate for the following cloud resource:
 
-    const breakdown = this.calculateCostBreakdown(
-      resourceType,
-      config,
-      baseRates,
-    );
+        Resource Type: ${resourceType}
+        Configuration: ${JSON.stringify(config, null, 2)}
+        Region: ${region}
+        Cloud Provider: AWS (assume unless specified otherwise)
 
-    return {
-      resourceId: config.resourceId || 'estimated',
-      resourceType,
-      hourlyRate,
-      monthlyEstimate,
-      currency: 'USD',
-      breakdown,
-      confidence: 0.85, // Mock confidence level
-      lastUpdated: new Date(),
-    };
+        Please provide:
+        1. Hourly rate in USD
+        2. Monthly estimated cost (24/7 usage)
+        3. Cost breakdown by category (compute, storage, network, other)
+        4. Confidence level (0-1) based on how accurate this estimate is
+        5. Any additional cost considerations or notes
+
+        Consider current market rates, regional pricing differences, and any applicable discounts.
+        Respond in JSON format with the following structure:
+        {
+          "hourlyRate": number,
+          "monthlyEstimate": number,
+          "breakdown": {
+            "compute": number,
+            "storage": number,
+            "network": number,
+            "other": number
+          },
+          "confidence": number,
+          "notes": string
+        }
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      // Parse the AI response
+      const aiEstimate = this.parseAIResponse(aiResponse);
+
+      return {
+        resourceId: config.resourceId || 'estimated',
+        resourceType,
+        hourlyRate: aiEstimate.hourlyRate,
+        monthlyEstimate: aiEstimate.monthlyEstimate,
+        currency: 'USD',
+        breakdown: aiEstimate.breakdown,
+        confidence: aiEstimate.confidence,
+        lastUpdated: new Date(),
+      };
+    } catch (error) {
+      console.error(
+        'AI cost estimation failed, falling back to basic calculation:',
+        error,
+      );
+      // Fallback to basic calculation if AI fails
+      return this.fallbackCostEstimation(resourceType, config, region);
+    }
   }
 
   /**
-   * Analyze costs for all user resources
+   * Analyze costs for all user resources with AI-powered insights
    */
   async analyzeUserCosts(userId: string): Promise<CostAnalysis> {
     const resources = await this.resourceRepository.find({
@@ -103,6 +157,17 @@ export class CostEstimationService {
     const costByService: Record<string, number> = {};
     const optimizations: CostOptimization[] = [];
 
+    // Collect resource data for AI analysis
+    const resourceData = resources.map((resource) => ({
+      id: resource.id,
+      type: resource.type,
+      cpu: resource.cpu,
+      ram: resource.ram,
+      storage: resource.storage,
+      region: resource.region || 'us-east-1',
+      status: resource.status,
+    }));
+
     for (const resource of resources) {
       const estimate = await this.estimateResourceCost(
         resource.type,
@@ -112,7 +177,7 @@ export class CostEstimationService {
           ram: resource.ram,
           storage: resource.storage,
         },
-        'us-east-1', // Default region
+        resource.region || 'us-east-1',
       );
 
       totalMonthlyCost += estimate.monthlyEstimate;
@@ -120,14 +185,20 @@ export class CostEstimationService {
       costByService[resource.type] =
         (costByService[resource.type] || 0) + estimate.monthlyEstimate;
 
-      // Generate optimization recommendations
-      const optimization = await this.generateOptimization(resource);
+      // Generate AI-powered optimization recommendations
+      const optimization = await this.generateAIOptimization(resource);
       if (optimization.recommendations.length > 0) {
         optimizations.push(optimization);
       }
     }
 
-    // Mock cost trend data (last 30 days)
+    // Use AI to analyze overall cost patterns and provide insights
+    const aiInsights = await this.generateCostInsights(
+      resourceData,
+      totalMonthlyCost,
+    );
+
+    // Generate cost trend data (enhanced with AI if possible)
     const costTrend = this.generateCostTrend(totalMonthlyCost / 30);
 
     return {
@@ -137,6 +208,7 @@ export class CostEstimationService {
       costTrend,
       optimizations,
       currency: 'USD',
+      ...aiInsights, // Add AI insights
     };
   }
 
@@ -159,47 +231,64 @@ export class CostEstimationService {
       expected: number;
       deviation: number;
     }>;
+    aiInsights: string[];
   }> {
-    const analysis = await this.analyzeUserCosts(userId);
+    try {
+      const analysis = await this.analyzeUserCosts(userId);
+      const historicalData = await this.getHistoricalCostData(userId, 90);
 
-    // Get historical cost data for ML analysis
-    const historicalData = await this.getHistoricalCostData(userId, 90); // 90 days
+      // Use AI for advanced forecasting
+      const prompt = `
+        As a financial analyst specializing in cloud cost forecasting, analyze this cost data and provide a comprehensive forecast:
 
-    if (historicalData.length < 7) {
-      // Fallback to simple forecasting if insufficient data
-      const growthRate = 0.05;
-      const forecast =
-        analysis.totalMonthlyCost * Math.pow(1 + growthRate, months);
+        Current Cost Analysis:
+        - Total Monthly Cost: $${analysis.totalMonthlyCost.toFixed(2)}
+        - Cost by Service: ${JSON.stringify(analysis.costByService)}
+        - Historical Data (last 90 days): ${JSON.stringify(historicalData.slice(-30), null, 2)}
+
+        Please provide a ${months}-month cost forecast with:
+        1. Current month cost estimate
+        2. ${months}-month forecast
+        3. Confidence level (0-1)
+        4. Cost breakdown by category
+        5. Trend analysis (increasing/decreasing/stable)
+        6. Seasonality detection (true/false)
+        7. Anomaly detection with specific dates and deviations
+        8. Key insights and strategic recommendations
+
+        Respond in JSON format:
+        {
+          "currentMonth": number,
+          "forecast": number,
+          "confidence": number,
+          "breakdown": {"compute": number, "storage": number, "network": number, "other": number},
+          "trend": "increasing|decreasing|stable",
+          "seasonality": boolean,
+          "anomalies": [{"date": "YYYY-MM-DD", "actual": number, "expected": number, "deviation": number}],
+          "insights": ["insight 1", "insight 2", ...]
+        }
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      const aiForecast = this.parseForecastResponse(aiResponse);
 
       return {
-        currentMonth: analysis.totalMonthlyCost,
-        forecast,
-        confidence: 0.6,
-        breakdown: analysis.costByService,
-        trend: 'stable',
-        seasonality: false,
-        anomalies: [],
+        currentMonth: aiForecast.currentMonth,
+        forecast: aiForecast.forecast,
+        confidence: aiForecast.confidence,
+        breakdown: aiForecast.breakdown,
+        trend: aiForecast.trend,
+        seasonality: aiForecast.seasonality,
+        anomalies: aiForecast.anomalies,
+        aiInsights: aiForecast.insights,
       };
+    } catch (error) {
+      console.error('AI forecasting failed, using fallback:', error);
+      return this.fallbackForecast(userId, months);
     }
-
-    // Apply ML-based forecasting
-    const forecastResult = this.applyTimeSeriesForecasting(
-      historicalData,
-      months,
-    );
-    const anomalies = this.detectAnomalies(historicalData);
-    const trend = this.analyzeTrend(historicalData);
-    const seasonality = this.detectSeasonality(historicalData);
-
-    return {
-      currentMonth: analysis.totalMonthlyCost,
-      forecast: forecastResult.value,
-      confidence: forecastResult.confidence,
-      breakdown: analysis.costByService,
-      trend,
-      seasonality,
-      anomalies,
-    };
   }
 
   /**
@@ -727,5 +816,496 @@ export class CostEstimationService {
       metadata,
       timestamp: new Date(),
     });
+  }
+
+  /**
+   * Parse AI response from Gemini
+   */
+  private parseAIResponse(aiResponse: string): {
+    hourlyRate: number;
+    monthlyEstimate: number;
+    breakdown: {
+      compute: number;
+      storage: number;
+      network: number;
+      other: number;
+    };
+    confidence: number;
+    notes: string;
+  } {
+    try {
+      // Extract JSON from the response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in AI response');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return {
+        hourlyRate: parsed.hourlyRate || 0,
+        monthlyEstimate: parsed.monthlyEstimate || 0,
+        breakdown: parsed.breakdown || {
+          compute: 0,
+          storage: 0,
+          network: 0,
+          other: 0,
+        },
+        confidence: Math.min(Math.max(parsed.confidence || 0.5, 0), 1),
+        notes: parsed.notes || '',
+      };
+    } catch (error) {
+      console.error('Failed to parse AI response:', error);
+      // Return fallback values
+      return {
+        hourlyRate: 0.1,
+        monthlyEstimate: 72,
+        breakdown: { compute: 50, storage: 15, network: 5, other: 7 },
+        confidence: 0.3,
+        notes: 'AI parsing failed, using fallback estimates',
+      };
+    }
+  }
+
+  /**
+   * Fallback cost estimation when AI fails
+   */
+  private fallbackCostEstimation(
+    resourceType: string,
+    config: Record<string, any>,
+    region: string,
+  ): CostEstimate {
+    const baseRates = this.getBaseRates(resourceType, region);
+    const hourlyRate = this.calculateHourlyRate(
+      resourceType,
+      config,
+      baseRates,
+    );
+    const monthlyEstimate = hourlyRate * 24 * 30;
+
+    const breakdown = this.calculateCostBreakdown(
+      resourceType,
+      config,
+      baseRates,
+    );
+
+    return {
+      resourceId: config.resourceId || 'estimated',
+      resourceType,
+      hourlyRate,
+      monthlyEstimate,
+      currency: 'USD',
+      breakdown,
+      confidence: 0.6, // Lower confidence for fallback
+      lastUpdated: new Date(),
+    };
+  }
+
+  /**
+   * Generate AI-powered optimization recommendations
+   */
+  private async generateAIOptimization(
+    resource: CloudResource,
+  ): Promise<CostOptimization> {
+    try {
+      const prompt = `
+        As a cloud cost optimization expert, analyze this cloud resource and provide specific optimization recommendations:
+
+        Resource Details:
+        - Type: ${resource.type}
+        - CPU: ${resource.cpu}
+        - RAM: ${resource.ram} GB
+        - Storage: ${resource.storage} GB
+        - Region: ${resource.region || 'us-east-1'}
+        - Status: ${resource.status}
+
+        Please provide optimization recommendations in JSON format:
+        {
+          "recommendations": [
+            {
+              "type": "scale-down|reserved-instance|storage-optimization|network-optimization|auto-shutdown|rightsizing",
+              "description": "Detailed description of the recommendation",
+              "potentialSavings": number (monthly savings in USD),
+              "confidence": number (0-1),
+              "implementationEffort": "low|medium|high",
+              "riskLevel": "low|medium|high"
+            }
+          ],
+          "totalPotentialSavings": number
+        }
+
+        Focus on practical, actionable recommendations with realistic savings estimates.
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      const parsed = this.parseOptimizationResponse(aiResponse);
+      return {
+        resourceId: resource.id,
+        recommendations: parsed.recommendations,
+        totalPotentialSavings: parsed.totalPotentialSavings,
+      };
+    } catch (error) {
+      console.error('AI optimization generation failed:', error);
+      return this.generateOptimization(resource); // Fallback to basic optimization
+    }
+  }
+
+  /**
+   * Generate AI-powered deployment recommendations
+   */
+  async generateDeploymentRecommendations(
+    requirements: string,
+    budget?: number,
+    region?: string,
+    workloadType?: string,
+  ): Promise<{
+    recommendations: Array<{
+      architecture: string;
+      services: string[];
+      estimatedCost: number;
+      reasoning: string;
+      pros: string[];
+      cons: string[];
+      confidence: number;
+    }>;
+    bestChoice: string;
+    costAnalysis: string;
+    scalabilityNotes: string;
+  }> {
+    try {
+      const prompt = `
+        As a cloud architecture expert, provide deployment recommendations for the following requirements:
+
+        Requirements: ${requirements}
+        Budget: ${budget ? `$${budget}/month` : 'Not specified'}
+        Region: ${region || 'Not specified'}
+        Workload Type: ${workloadType || 'Not specified'}
+
+        Please provide deployment architecture recommendations in JSON format:
+        {
+          "recommendations": [
+            {
+              "architecture": "Architecture name (e.g., 'Serverless Web App', 'Microservices on EKS')",
+              "services": ["AWS Lambda", "API Gateway", "DynamoDB"],
+              "estimatedCost": number (monthly cost in USD),
+              "reasoning": "Why this architecture fits the requirements",
+              "pros": ["Pro 1", "Pro 2"],
+              "cons": ["Con 1", "Con 2"],
+              "confidence": number (0-1)
+            }
+          ],
+          "bestChoice": "Recommended architecture name",
+          "costAnalysis": "Detailed cost analysis and optimization notes",
+          "scalabilityNotes": "How this scales with growth"
+        }
+
+        Consider cost optimization, scalability, maintainability, and operational complexity.
+        Provide 2-4 different architecture options with realistic cost estimates.
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      return this.parseDeploymentRecommendations(aiResponse);
+    } catch (error) {
+      console.error('AI deployment recommendations failed:', error);
+      return this.fallbackDeploymentRecommendations(
+        requirements,
+        budget || 100,
+      );
+    }
+  }
+
+  /**
+   * Generate AI-powered cost insights
+   */
+  private async generateCostInsights(
+    resources: any[],
+    totalMonthlyCost: number,
+  ): Promise<{
+    aiInsights?: string[];
+    costEfficiency?: number;
+    recommendations?: string[];
+  }> {
+    try {
+      const prompt = `
+        As a cloud cost analyst, analyze this infrastructure setup and provide strategic insights:
+
+        Infrastructure Overview:
+        - Total Resources: ${resources.length}
+        - Total Monthly Cost: $${totalMonthlyCost.toFixed(2)}
+        - Resources: ${JSON.stringify(resources, null, 2)}
+
+        Provide strategic cost insights in JSON format:
+        {
+          "insights": ["Strategic insight 1", "Strategic insight 2", ...],
+          "costEfficiency": number (0-100, where 100 is most efficient),
+          "recommendations": ["Strategic recommendation 1", "Strategic recommendation 2", ...]
+        }
+
+        Focus on high-level strategic advice, cost efficiency assessment, and architectural recommendations.
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      return this.parseInsightsResponse(aiResponse);
+    } catch (error) {
+      console.error('AI insights generation failed:', error);
+      return {}; // Return empty object as fallback
+    }
+  }
+
+  /**
+   * Parse optimization AI response
+   */
+  private parseOptimizationResponse(aiResponse: string): {
+    recommendations: Array<{
+      type:
+        | 'scale-down'
+        | 'reserved-instance'
+        | 'storage-optimization'
+        | 'network-optimization'
+        | 'auto-shutdown'
+        | 'rightsizing';
+      description: string;
+      potentialSavings: number;
+      confidence: number;
+      implementationEffort?: 'low' | 'medium' | 'high';
+      riskLevel?: 'low' | 'medium' | 'high';
+    }>;
+    totalPotentialSavings: number;
+  } {
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      const validTypes = [
+        'scale-down',
+        'reserved-instance',
+        'storage-optimization',
+        'network-optimization',
+        'auto-shutdown',
+        'rightsizing',
+      ];
+
+      // Validate and map recommendations to correct types
+      const recommendations = (parsed.recommendations || []).map(
+        (rec: any) => ({
+          type: validTypes.includes(rec.type) ? rec.type : 'rightsizing',
+          description: rec.description || '',
+          potentialSavings: rec.potentialSavings || 0,
+          confidence: rec.confidence || 0,
+          implementationEffort: rec.implementationEffort || 'medium',
+          riskLevel: rec.riskLevel || 'medium',
+        }),
+      );
+
+      return {
+        recommendations,
+        totalPotentialSavings: parsed.totalPotentialSavings || 0,
+      };
+    } catch (error) {
+      console.error('Failed to parse optimization response:', error);
+      return { recommendations: [], totalPotentialSavings: 0 };
+    }
+  }
+
+  /**
+   * Parse forecast AI response
+   */
+  private parseForecastResponse(aiResponse: string): {
+    currentMonth: number;
+    forecast: number;
+    confidence: number;
+    breakdown: Record<string, number>;
+    trend: 'increasing' | 'decreasing' | 'stable';
+    seasonality: boolean;
+    anomalies: Array<{
+      date: string;
+      actual: number;
+      expected: number;
+      deviation: number;
+    }>;
+    insights: string[];
+  } {
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        currentMonth: parsed.currentMonth || 0,
+        forecast: parsed.forecast || 0,
+        confidence: Math.min(Math.max(parsed.confidence || 0.5, 0), 1),
+        breakdown: parsed.breakdown || {
+          compute: 0,
+          storage: 0,
+          network: 0,
+          other: 0,
+        },
+        trend: parsed.trend || 'stable',
+        seasonality: parsed.seasonality || false,
+        anomalies: parsed.anomalies || [],
+        insights: parsed.insights || [],
+      };
+    } catch (error) {
+      console.error('Failed to parse forecast response:', error);
+      return {
+        currentMonth: 0,
+        forecast: 0,
+        confidence: 0.3,
+        breakdown: { compute: 0, storage: 0, network: 0, other: 0 },
+        trend: 'stable',
+        seasonality: false,
+        anomalies: [],
+        insights: ['AI parsing failed'],
+      };
+    }
+  }
+
+  /**
+   * Fallback forecast when AI fails
+   */
+  private async fallbackForecast(
+    userId: string,
+    months: number,
+  ): Promise<{
+    currentMonth: number;
+    forecast: number;
+    confidence: number;
+    breakdown: Record<string, number>;
+    trend: 'increasing' | 'decreasing' | 'stable';
+    seasonality: boolean;
+    anomalies: Array<{
+      date: string;
+      actual: number;
+      expected: number;
+      deviation: number;
+    }>;
+    aiInsights: string[];
+  }> {
+    const analysis = await this.analyzeUserCosts(userId);
+    const growthRate = 0.05;
+    const forecast =
+      analysis.totalMonthlyCost * Math.pow(1 + growthRate, months);
+
+    return {
+      currentMonth: analysis.totalMonthlyCost,
+      forecast,
+      confidence: 0.6,
+      breakdown: analysis.costByService,
+      trend: 'stable',
+      seasonality: false,
+      anomalies: [],
+      aiInsights: ['Using basic forecasting due to AI unavailability'],
+    };
+  }
+
+  /**
+   * Parse deployment recommendations AI response
+   */
+  private parseDeploymentRecommendations(aiResponse: string): {
+    recommendations: Array<{
+      architecture: string;
+      services: string[];
+      estimatedCost: number;
+      reasoning: string;
+      pros: string[];
+      cons: string[];
+      confidence: number;
+    }>;
+    bestChoice: string;
+    costAnalysis: string;
+    scalabilityNotes: string;
+  } {
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        recommendations: parsed.recommendations || [],
+        bestChoice: parsed.bestChoice || '',
+        costAnalysis: parsed.costAnalysis || '',
+        scalabilityNotes: parsed.scalabilityNotes || '',
+      };
+    } catch (error) {
+      console.error('Failed to parse deployment recommendations:', error);
+      return {
+        recommendations: [],
+        bestChoice: '',
+        costAnalysis: 'AI parsing failed',
+        scalabilityNotes: 'Unable to analyze scalability',
+      };
+    }
+  }
+
+  /**
+   * Fallback deployment recommendations when AI fails
+   */
+  private fallbackDeploymentRecommendations(
+    requirements: string,
+    budget: number,
+  ): {
+    recommendations: Array<{
+      architecture: string;
+      services: string[];
+      estimatedCost: number;
+      reasoning: string;
+      pros: string[];
+      cons: string[];
+      confidence: number;
+    }>;
+    bestChoice: string;
+    costAnalysis: string;
+    scalabilityNotes: string;
+  } {
+    return {
+      recommendations: [
+        {
+          architecture: 'Microservices on AWS',
+          services: ['EC2', 'RDS', 'S3', 'CloudFront'],
+          estimatedCost: budget,
+          reasoning: 'Balanced architecture for most applications',
+          pros: ['Scalable', 'Cost-effective', 'Reliable'],
+          cons: ['Complex setup', 'Requires DevOps knowledge'],
+          confidence: 0.7,
+        },
+      ],
+      bestChoice: 'Microservices on AWS',
+      costAnalysis: 'Basic recommendation due to AI unavailability',
+      scalabilityNotes: 'Consider serverless for better auto-scaling',
+    };
+  }
+
+  /**
+   * Parse insights AI response
+   */
+  private parseInsightsResponse(aiResponse: string): {
+    aiInsights?: string[];
+    costEfficiency?: number;
+    recommendations?: string[];
+  } {
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        aiInsights: parsed.insights,
+        costEfficiency: parsed.costEfficiency,
+        recommendations: parsed.recommendations,
+      };
+    } catch (error) {
+      console.error('Failed to parse insights response:', error);
+      return {};
+    }
   }
 }

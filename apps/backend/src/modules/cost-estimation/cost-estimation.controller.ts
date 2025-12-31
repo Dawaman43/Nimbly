@@ -33,20 +33,22 @@ export class CostEstimationController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('estimate')
-  async estimateCost(
+  @Post('recommendations')
+  async getDeploymentRecommendations(
     @Request() req,
     @Body()
     body: {
-      resourceType: string;
-      config: Record<string, any>;
+      requirements: string;
+      budget?: number;
       region?: string;
+      workloadType?: string;
     },
   ): Promise<any> {
-    return this.costService.estimateResourceCost(
-      body.resourceType,
-      body.config,
-      body.region || 'us-east-1',
+    return this.costService.generateDeploymentRecommendations(
+      body.requirements,
+      body.budget,
+      body.region,
+      body.workloadType,
     );
   }
 
