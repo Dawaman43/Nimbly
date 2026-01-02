@@ -33,6 +33,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@nimbly/shared-types": "file:../../libs/shared-types",
     "bcrypt": "^6.0.0",
+    "dotenv": "^16.6.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
