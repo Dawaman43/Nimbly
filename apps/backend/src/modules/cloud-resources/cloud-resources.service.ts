@@ -5,13 +5,11 @@ import { randomUUID } from 'crypto';
 import { CloudResource } from './cloud-resource.entity';
 import { CloudProvider, DeploymentRequest } from '@nimbly/shared-types';
 import { MockCloudProvider } from '../../providers/mock-cloud-provider';
-import { AWSCloudProvider } from '../../providers/aws-cloud-provider';
-import { AzureCloudProvider } from '../../providers/azure-cloud-provider';
-import { GCPCloudProvider } from '../../providers/gcp-cloud-provider';
 
 @Injectable()
 export class CloudResourcesService implements OnModuleInit {
   private providers: Map<string, CloudProvider> = new Map();
+  private warnedMissingProviders = new Set<string>();
 
   constructor(
     @InjectRepository(CloudResource)
@@ -36,9 +34,24 @@ export class CloudResourcesService implements OnModuleInit {
     const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
     const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
     if (awsAccessKeyId && awsSecretAccessKey) {
+      let AWSCloudProviderCtor: any;
+      try {
+        AWSCloudProviderCtor =
+          require('../../providers/aws-cloud-provider').AWSCloudProvider;
+      } catch (error) {
+        console.warn(
+          'AWS provider module unavailable; falling back to mock provider',
+          error,
+        );
+        AWSCloudProviderCtor = undefined;
+      }
+
+      if (!AWSCloudProviderCtor) {
+        return;
+      }
       this.providers.set(
         'aws',
-        new AWSCloudProvider({
+        new AWSCloudProviderCtor({
           region,
           credentials: {
             accessKeyId: awsAccessKeyId,
@@ -54,9 +67,24 @@ export class CloudResourcesService implements OnModuleInit {
     const azureClientSecret = process.env.AZURE_CLIENT_SECRET;
     const azureTenantId = process.env.AZURE_TENANT_ID;
     if (azureClientId && azureClientSecret && azureTenantId) {
+      let AzureCloudProviderCtor: any;
+      try {
+        AzureCloudProviderCtor =
+          require('../../providers/azure-cloud-provider').AzureCloudProvider;
+      } catch (error) {
+        console.warn(
+          'Azure provider module unavailable; falling back to mock provider',
+          error,
+        );
+        AzureCloudProviderCtor = undefined;
+      }
+
+      if (!AzureCloudProviderCtor) {
+        return;
+      }
       this.providers.set(
         'azure',
-        new AzureCloudProvider({
+        new AzureCloudProviderCtor({
           region: process.env.AZURE_REGION || 'eastus',
           credentials: {
             accessKeyId: azureClientId,
@@ -69,9 +97,24 @@ export class CloudResourcesService implements OnModuleInit {
     // GCP provider
     const gcpKeyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (gcpKeyFile) {
+      let GCPCloudProviderCtor: any;
+      try {
+        GCPCloudProviderCtor =
+          require('../../providers/gcp-cloud-provider').GCPCloudProvider;
+      } catch (error) {
+        console.warn(
+          'GCP provider module unavailable; falling back to mock provider',
+          error,
+        );
+        GCPCloudProviderCtor = undefined;
+      }
+
+      if (!GCPCloudProviderCtor) {
+        return;
+      }
       this.providers.set(
         'gcp',
-        new GCPCloudProvider({
+        new GCPCloudProviderCtor({
           region: process.env.GCP_REGION || 'us-central1',
           credentials: {
             accessKeyId: 'gcp-service-account',
@@ -83,11 +126,19 @@ export class CloudResourcesService implements OnModuleInit {
   }
 
   private getProviderForResource(resource: CloudResource): CloudProvider {
-    const provider = this.providers.get(resource.provider || 'mock');
-    if (!provider) {
-      throw new Error(`Provider ${resource.provider} not configured`);
+    const providerKey = (resource.provider || 'mock').trim();
+    const provider = this.providers.get(providerKey);
+    if (provider) return provider;
+
+    if (!this.warnedMissingProviders.has(providerKey)) {
+      this.warnedMissingProviders.add(providerKey);
+      console.warn(
+        `Provider ${providerKey} not configured; falling back to mock provider. ` +
+          `Set the required credentials/env vars to enable it.`,
+      );
     }
-    return provider;
+
+    return this.getDefaultProvider();
   }
 
   private getDefaultProvider(): CloudProvider {
@@ -238,7 +289,32 @@ export class CloudResourcesService implements OnModuleInit {
     }
 
     const provider = this.getProviderForResource(resource);
-    return provider.getMetrics(id);
+    try {
+      return await provider.getMetrics(id);
+    } catch (error) {
+      // If we fell back to mock provider for a real-provider resource,
+      // the mock provider may not have any in-memory state for this resource yet.
+      if (
+        provider instanceof MockCloudProvider &&
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        await provider.deploy({
+          resourceId: resource.id,
+          action: 'create',
+          config: {
+            name: resource.name,
+            type: resource.type,
+            cpu: resource.cpu,
+            ram: resource.ram,
+            storage: resource.storage,
+          },
+        });
+        return provider.getMetrics(id);
+      }
+
+      throw error;
+    }
   }
 
   async getResourceStatus(id: string) {
@@ -248,7 +324,30 @@ export class CloudResourcesService implements OnModuleInit {
     }
 
     const provider = this.getProviderForResource(resource);
-    return provider.getResourceStatus(id);
+    try {
+      return await provider.getResourceStatus(id);
+    } catch (error) {
+      if (
+        provider instanceof MockCloudProvider &&
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        await provider.deploy({
+          resourceId: resource.id,
+          action: 'create',
+          config: {
+            name: resource.name,
+            type: resource.type,
+            cpu: resource.cpu,
+            ram: resource.ram,
+            storage: resource.storage,
+          },
+        });
+        return provider.getResourceStatus(id);
+      }
+
+      throw error;
+    }
   }
 
   async scaleResource(id: string, newConfig: Record<string, any>) {

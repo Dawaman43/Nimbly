@@ -52,7 +52,7 @@ export default function BillingView() {
         setLoading(true);
         const [billingData, costData, forecastData] = await Promise.all([
           api.get("/billing", true), // Use cache
-          api.get("/cost-estimation/analyze", true), // Get cost analysis
+          api.get("/cost-estimation/analysis", true), // Get cost analysis
           api.get("/cost-estimation/forecast", true), // Get cost forecast
         ]);
         setSummary(billingData);

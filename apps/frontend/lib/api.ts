@@ -1,6 +1,6 @@
 import { cache } from "./cache";
 
-const API_URL = "http://[::1]:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 // Cache TTLs in milliseconds
 const CACHE_TTL = {

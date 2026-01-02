@@ -59,6 +59,8 @@ export interface CostAnalysis {
 export class CostEstimationService {
   private genAI: GoogleGenerativeAI;
   private model: any;
+  private aiEnabled = true;
+  private geminiModelName: string;
 
   constructor(
     @InjectRepository(CloudResource)
@@ -73,7 +75,52 @@ export class CostEstimationService {
       );
     }
     this.genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.geminiModelName =
+      process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash-latest';
+    this.model = this.genAI.getGenerativeModel({ model: this.geminiModelName });
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    if (error instanceof Error) return error.message;
+
+    const anyError = error as any;
+    if (typeof anyError?.message === 'string') return anyError.message;
+    return '';
+  }
+
+  private isGeminiModelUnsupportedError(error: unknown): boolean {
+    const anyError = error as any;
+    const status = anyError?.status;
+    const message = this.getErrorMessage(error);
+
+    if (
+      status === 404 &&
+      typeof message === 'string' &&
+      message.includes('models/')
+    ) {
+      return true;
+    }
+
+    return (
+      /models\/[\w.-]+\s+is not found/i.test(message) ||
+      /not supported for generateContent/i.test(message)
+    );
+  }
+
+  private disableGeminiAI(reason: string, error?: unknown) {
+    if (!this.aiEnabled) return;
+
+    this.aiEnabled = false;
+    const errorMessage = this.getErrorMessage(error);
+    console.warn(
+      `Gemini AI disabled (${reason})${errorMessage ? `: ${errorMessage}` : ''}`,
+    );
+  }
+
+  private isAIReady(): boolean {
+    return this.aiEnabled && !!this.model;
   }
 
   /**
@@ -84,6 +131,9 @@ export class CostEstimationService {
     config: Record<string, any>,
     region: string = 'us-east-1',
   ): Promise<CostEstimate> {
+    if (!this.isAIReady()) {
+      return this.fallbackCostEstimation(resourceType, config, region);
+    }
     try {
       // Use Gemini AI for intelligent cost estimation
       const prompt = `
@@ -135,10 +185,17 @@ export class CostEstimationService {
         lastUpdated: new Date(),
       };
     } catch (error) {
-      console.error(
-        'AI cost estimation failed, falling back to basic calculation:',
-        error,
-      );
+      if (this.isGeminiModelUnsupportedError(error)) {
+        this.disableGeminiAI(
+          `model ${this.geminiModelName} unavailable for generateContent`,
+          error,
+        );
+      } else {
+        console.error(
+          'AI cost estimation failed, falling back to basic calculation:',
+          error,
+        );
+      }
       // Fallback to basic calculation if AI fails
       return this.fallbackCostEstimation(resourceType, config, region);
     }
@@ -233,6 +290,9 @@ export class CostEstimationService {
     }>;
     aiInsights: string[];
   }> {
+    if (!this.isAIReady()) {
+      return this.fallbackForecast(userId, months);
+    }
     try {
       const analysis = await this.analyzeUserCosts(userId);
       const historicalData = await this.getHistoricalCostData(userId, 90);
@@ -286,7 +346,14 @@ export class CostEstimationService {
         aiInsights: aiForecast.insights,
       };
     } catch (error) {
-      console.error('AI forecasting failed, using fallback:', error);
+      if (this.isGeminiModelUnsupportedError(error)) {
+        this.disableGeminiAI(
+          `model ${this.geminiModelName} unavailable for generateContent`,
+          error,
+        );
+      } else {
+        console.error('AI forecasting failed, using fallback:', error);
+      }
       return this.fallbackForecast(userId, months);
     }
   }
@@ -907,6 +974,9 @@ export class CostEstimationService {
   private async generateAIOptimization(
     resource: CloudResource,
   ): Promise<CostOptimization> {
+    if (!this.isAIReady()) {
+      return this.generateOptimization(resource);
+    }
     try {
       const prompt = `
         As a cloud cost optimization expert, analyze this cloud resource and provide specific optimization recommendations:
@@ -948,7 +1018,14 @@ export class CostEstimationService {
         totalPotentialSavings: parsed.totalPotentialSavings,
       };
     } catch (error) {
-      console.error('AI optimization generation failed:', error);
+      if (this.isGeminiModelUnsupportedError(error)) {
+        this.disableGeminiAI(
+          `model ${this.geminiModelName} unavailable for generateContent`,
+          error,
+        );
+      } else {
+        console.error('AI optimization generation failed:', error);
+      }
       return this.generateOptimization(resource); // Fallback to basic optimization
     }
   }
@@ -975,6 +1052,12 @@ export class CostEstimationService {
     costAnalysis: string;
     scalabilityNotes: string;
   }> {
+    if (!this.isAIReady()) {
+      return this.fallbackDeploymentRecommendations(
+        requirements,
+        budget || 100,
+      );
+    }
     try {
       const prompt = `
         As a cloud architecture expert, provide deployment recommendations for the following requirements:
@@ -1012,7 +1095,14 @@ export class CostEstimationService {
 
       return this.parseDeploymentRecommendations(aiResponse);
     } catch (error) {
-      console.error('AI deployment recommendations failed:', error);
+      if (this.isGeminiModelUnsupportedError(error)) {
+        this.disableGeminiAI(
+          `model ${this.geminiModelName} unavailable for generateContent`,
+          error,
+        );
+      } else {
+        console.error('AI deployment recommendations failed:', error);
+      }
       return this.fallbackDeploymentRecommendations(
         requirements,
         budget || 100,
@@ -1031,6 +1121,9 @@ export class CostEstimationService {
     costEfficiency?: number;
     recommendations?: string[];
   }> {
+    if (!this.isAIReady()) {
+      return {};
+    }
     try {
       const prompt = `
         As a cloud cost analyst, analyze this infrastructure setup and provide strategic insights:
@@ -1056,7 +1149,14 @@ export class CostEstimationService {
 
       return this.parseInsightsResponse(aiResponse);
     } catch (error) {
-      console.error('AI insights generation failed:', error);
+      if (this.isGeminiModelUnsupportedError(error)) {
+        this.disableGeminiAI(
+          `model ${this.geminiModelName} unavailable for generateContent`,
+          error,
+        );
+      } else {
+        console.error('AI insights generation failed:', error);
+      }
       return {}; // Return empty object as fallback
     }
   }
