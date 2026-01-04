@@ -316,4 +316,4 @@ Inspired by the pain of managing cloud infrastructure at scale. Built for develo
 
 ---
 
-**Ready to build the future of infrastructure?** [Get started contributing](CONTRIBUTING.md) 🚀
+**Ready to build the future of infrastructure?** [Get started contributing](CONTRIBUTING.md) 
