@@ -1,33 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../user/user.entity';
-import { CloudResource } from '../cloud-resources/cloud-resource.entity';
-import { Alert } from '../alerts/alert.entity';
-import { Deployment } from '../deployments/deployment.entity';
-import { Invoice } from '../billing/invoice.entity';
-import { MonitoringLog } from '../monitoring/monitoring-log.entity';
-import { CostHistory } from '../cost-estimation/cost-history.entity';
+import { getDatabaseConfig } from '../../config/database.config';
 
 @Module({
-  imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST ?? 'localhost',
-      port: parseInt(process.env.DB_PORT ?? '5433', 10),
-      username: process.env.DB_USER ?? 'postgres',
-      password: process.env.DB_PASSWORD ?? 'postgres',
-      database: process.env.DB_NAME ?? 'nimbly',
-      entities: [
-        User,
-        CloudResource,
-        Alert,
-        Deployment,
-        Invoice,
-        MonitoringLog,
-        CostHistory,
-      ],
-      synchronize: true, // auto-create tables for dev
-    }),
-  ],
+  imports: [TypeOrmModule.forRoot(getDatabaseConfig())],
 })
 export class DatabaseModule {}

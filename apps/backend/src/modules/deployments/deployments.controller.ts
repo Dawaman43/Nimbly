@@ -8,10 +8,13 @@ import {
   Request,
   NotFoundException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { DeploymentsService } from './deployments.service';
 import { Deployment } from './deployment.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@ApiTags('Deployments')
+@ApiBearerAuth('JWT-auth')
 @Controller('deployments')
 export class DeploymentsController {
   constructor(private readonly deploymentsService: DeploymentsService) {}

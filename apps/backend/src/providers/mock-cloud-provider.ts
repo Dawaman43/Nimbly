@@ -12,9 +12,11 @@ import type {
 export class MockCloudProvider extends CloudProvider {
   private resources = new Map<string, any>();
   private deployments = new Map<string, any>();
+  protected config: CloudProviderConfig;
 
   constructor(config: CloudProviderConfig) {
     super(config);
+    this.config = config;
   }
 
   getName(): string {

@@ -10,6 +10,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { TeamModule } from './modules/team/team.module';
 import { CostEstimationModule } from './modules/cost-estimation/cost-estimation.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TemplatesModule } from './modules/templates/templates.module';
     TeamModule,
     CostEstimationModule,
     TemplatesModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

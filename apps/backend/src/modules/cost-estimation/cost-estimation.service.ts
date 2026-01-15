@@ -70,14 +70,16 @@ export class CostEstimationService {
   ) {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {
-      throw new Error(
-        'GEMINI_API_KEY environment variable is required for Google Generative AI',
+      console.warn(
+        'GEMINI_API_KEY not set - cost estimation will use fallback calculations',
       );
+      this.aiEnabled = false;
+    } else {
+      this.genAI = new GoogleGenerativeAI(geminiApiKey);
+      this.geminiModelName =
+        process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash-latest';
+      this.model = this.genAI.getGenerativeModel({ model: this.geminiModelName });
     }
-    this.genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.geminiModelName =
-      process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash-latest';
-    this.model = this.genAI.getGenerativeModel({ model: this.geminiModelName });
   }
 
   private getErrorMessage(error: unknown): string {

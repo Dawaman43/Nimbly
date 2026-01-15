@@ -8,8 +8,11 @@ import {
 } from '@nimbly/shared-types';
 
 export class GCPCloudProvider extends CloudProvider {
+  protected config: CloudProviderConfig;
+
   constructor(config: CloudProviderConfig) {
     super(config);
+    this.config = config;
   }
 
   getName(): string {

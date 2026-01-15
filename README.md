@@ -146,8 +146,19 @@ nimbly/
 ├── libs/
 │   ├── shared-types/     # TypeScript interfaces
 │   └── utils/           # Shared utilities
-└── docker-compose.yml   # Development environment
+├── docker-compose.yml   # Development environment
+└── docker-compose.prod.yml  # Production environment
 ```
+
+### Production Ready Features
+
+- ✅ **Security:** JWT auth, rate limiting, input validation, security headers
+- ✅ **Database:** Migrations, connection pooling, production-safe config
+- ✅ **Monitoring:** Health checks, structured logging, error tracking ready
+- ✅ **Deployment:** Docker images, CI/CD pipeline, production configs
+- ✅ **Documentation:** Swagger API docs, deployment guides
+
+See [PRODUCTION_READY.md](./PRODUCTION_READY.md) for full production readiness report.
 
 ### Available Scripts
 
@@ -231,10 +242,12 @@ npm run lint
 
 ## 📚 Documentation
 
-- [API Reference](docs/api/README.md)
+- [API Reference](docs/api/README.md) - Available at `/api/docs` when running
 - [Architecture Guide](docs/architecture/README.md)
 - [Contributing Guide](CONTRIBUTING.md)
-- [Deployment Guide](docs/deployment/README.md)
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
+- [Production Checklist](PRODUCTION_CHECKLIST.md) - Pre-launch checklist
+- [Production Ready Report](PRODUCTION_READY.md) - Current production status
 
 ## 🧪 Testing Strategy
 

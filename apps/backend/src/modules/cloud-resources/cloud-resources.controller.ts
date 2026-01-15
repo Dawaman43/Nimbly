@@ -8,10 +8,13 @@ import {
   NotFoundException,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CloudResourcesService } from './cloud-resources.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CloudResource } from './cloud-resource.entity';
 
+@ApiTags('Resources')
+@ApiBearerAuth('JWT-auth')
 @Controller('cloud-resources')
 export class CloudResourcesController {
   constructor(private readonly cloudService: CloudResourcesService) {}
